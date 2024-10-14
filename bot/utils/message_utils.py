@@ -1,4 +1,6 @@
 from aiogram.types import Message
+from typing import Dict, List
+from bot.main import bot
 
 async def format_start_message() -> str:
     """

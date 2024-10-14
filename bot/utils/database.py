@@ -1,6 +1,8 @@
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from typing import Dict, Optional, List
 
-from bot.models import Vacancy, Candidate
+from db.models import Vacancy, Candidate
 from bot.config import DATABASE_URL
 
 engine = create_engine(DATABASE_URL)  

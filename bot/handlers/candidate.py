@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from bot.utils import hh_api, openai_utils, db_utils, message_utils
-from bot.models import Candidate
+from db.models import Candidate
 
 class CandidateStates(StatesGroup):
     searching_hh = State()

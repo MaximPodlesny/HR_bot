@@ -1,4 +1,5 @@
 import aiohttp
+from typing import Dict, Optional
 from bot.config import BITRIX_API_KEY, BITRIX_DOMAIN, BITRIX_API_URL
 
 async def create_lead(candidate_data: Dict) -> Optional[Dict]:
@@ -52,7 +53,7 @@ async def update_lead(lead_id: int, candidate_data: Dict) -> bool:
             else:
                 return False
 
-async def create_task(lead_id: int, task_description: str) -> Optional[Dict]:
+async def create_task(lead_id: int, task_description: str): # -> Optional[Dict]:
     """
     Creates a new task in Bitrix24 associated with a lead.
     """

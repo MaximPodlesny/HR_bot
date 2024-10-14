@@ -1,5 +1,6 @@
 import aiohttp
 from bot.config import HH_API_KEY
+from typing import Dict, List
 
 async def search_candidates(vacancy_title: str) -> List[Dict]:
     """Searches for candidates on HH.ru based on vacancy title."""
