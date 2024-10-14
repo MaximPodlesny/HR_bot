@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from bot.models import Base, Vacancy, Candidate
+from .models import Base, Vacancy, Candidate
 from bot.config import DATABASE_URL
 
 engine = create_engine(DATABASE_URL)

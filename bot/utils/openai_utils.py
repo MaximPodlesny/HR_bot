@@ -1,5 +1,6 @@
 from bot.config import OPENAI_API_KEY
 from openai import OpenAI
+from typing import Dict, List
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
