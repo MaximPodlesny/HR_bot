@@ -6,8 +6,18 @@ from aiogram.types import ReplyKeyboardMarkup
 # from bot import bot
 from .search_candidate import search_c
 from GPT import process_commitment
+from handlers.utils.candidate import collect_candidate_info, CandidateInfoStates
+from aiogram.fsm.context import FSMContext
+# from aiogram.filters import Text
+from aiogram.fsm.state import State, StatesGroup
 
 router = Router()
+
+# class CandidateInfoStates(StatesGroup):
+#        waiting_for_ideal_candidate = State()
+#        waiting_for_demographics = State()
+#        waiting_for_qualities = State()
+#        waiting_for_skills = State()
 
 # Обработчик ответа Cancel
 @router.message(F.text == "Отмена")
@@ -53,9 +63,29 @@ async def process_my_data(message: types.Message):
 # Обработчик после получения ботом файла
 # @router.message(F.text == "Поиск кандидата" | F.text == "К поиску кандидата")
 @router.message(F.text.in_(["Поиск кандидата","К поиску кандидата"]))
-async def look_for_candidate(message: types.Message):
-    search_c()
-    await message.answer("Начинаю поиск...")
+async def look_for_candidate(message: types.Message, state: FSMContext):
+    await message.answer('Хорошо! Давайте соберем информацию о кандидате.')
+    await message.answer('Каким вы видите идеального кандидата?')
+    await state.set_state(CandidateInfoStates.waiting_for_ideal_candidate)
+
+@router.message(CandidateInfoStates.waiting_for_ideal_candidate)
+async def look_for_candidate(message: types.Message, state: FSMContext):
+    print("in look_for_candidate - waiting_for_ideal_candidate")
+    # await message.answer('Хорошо! Какими должны быть пол, возраст, минимальный опыт?')
+    # await state.set_state(CandidateInfoStates.waiting_for_demographics)
+    answer = await collect_candidate_info(message, state)
+
+@router.message(CandidateInfoStates.waiting_for_demographics)
+async def look_for_candidate(message: types.Message, state: FSMContext):
+    answer = await collect_candidate_info(message, state)
+
+@router.message(CandidateInfoStates.waiting_for_qualities)
+async def look_for_candidate(message: types.Message, state: FSMContext):
+    answer = await collect_candidate_info(message, state)
+
+@router.message(CandidateInfoStates.waiting_for_skills)
+async def look_for_candidate(message: types.Message, state: FSMContext):
+    answer = await collect_candidate_info(message, state)
 
 # Обработчик отправки файла
 # @dp.message_handler(content_types=["document", "photo"])
