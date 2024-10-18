@@ -1,4 +1,4 @@
-from .candidate import create_candidate
+from .utils.candidate import create_candidate
 from aiogram import Router, types
 
 router = Router()
