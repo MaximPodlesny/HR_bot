@@ -7,6 +7,7 @@ router = Router()
 
 @router.message(CommandStart())
 async def command_start_handler(message: types.Message):
+    
     buttons = [
             [
                 types.KeyboardButton(text="Создать вакансию"),

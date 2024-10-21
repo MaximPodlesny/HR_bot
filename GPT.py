@@ -1,6 +1,6 @@
 import asyncio
-from handlers.search_candidate import search_c
-from handlers.utils.candidate import collect_candidate_info
+# from handlers.search_candidate import search_c
+# from handlers.utils.candidate import collect_vacancy_info
 # from openai import OpenAI, AsyncOpenAI
 # from config import GPT_KEY
 
@@ -43,6 +43,7 @@ import g4f
 client = Client()
 
 async def process_commitment(message):
+  print('!!!В GPT')
   prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание.  Ты  интегрирован  с  API  HeadHunter,  Bitrix24  и  OpenAI.\
               **Твои  основные  задачи:**\
               *   **Поиск  кандидатов на вакансию:**  Помоги  найти кандидаов на вакансии  через  HeadHunter  или собственную базу резюме.\

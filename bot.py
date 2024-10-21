@@ -1,15 +1,16 @@
 import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-
-from config import BOT_TOKEN
-# from handlers import start, questionnaire, handlers
 from handlers import start_router, search_candidate_router, handlers_router
 from middlewares.logging import LoggingMiddleware
-print(BOT_TOKEN)
+from db.create_table import create_tables
+from config import BOT_TOKEN
+
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
+create_tables()
 # Инициализация бота и диспетчера
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
