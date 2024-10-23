@@ -1,7 +1,9 @@
 import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.state import State, StatesGroup
 from handlers import start_router, search_candidate_router, handlers_router
+from handlers.utils.chat_history import ChatHistory
 from middlewares.logging import LoggingMiddleware
 from db.create_table import create_tables
 from config import BOT_TOKEN
@@ -16,6 +18,7 @@ bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
+ChatHistory
 # Подключение мидлвара
 dp.message.middleware(LoggingMiddleware())
 

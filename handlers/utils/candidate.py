@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, text
 from config import DATABASE_URL
-from GPT import process_commitment
+from handlers.utils.gpt_for_generate_vacancy import process_commitment
 
 
 def create_candidate():
@@ -45,9 +45,11 @@ cancel = keyboard = ReplyKeyboardMarkup(
 #     )
 #     # async with async_session() as session:
 #     yield async_session #session
-engine = create_engine(DATABASE_URL, echo=True)
-Session = sessionmaker(bind=engine)
-session = Session()
+def get_db():
+    engine = create_engine(DATABASE_URL, echo=True)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
 
 # 4.  Функция  для  сохранения  информации  о  кандидате  в  базу:**
 # async def save_candidate_info(data: Dict[str, Any]):
@@ -69,22 +71,50 @@ session = Session()
 #         else:
 #             print('id of vacancy not found')
             # await message.reply("Какими должны быть пол, возраст, минимальный опыт?", reply_markup=cancel)
+# 
+
 def save_candidate_info(data: dict):
     """Сохраняет информацию о кандидате в базу данных."""
-    title_vacancy = data["waiting_for_title_vacancy"]
-    vacancy = session.query(Vacancies).filter_by(title=title_vacancy).first()
-    if vacancy:
-        new_candidate_portrait = CandidatePortrait(
-            vacancy_id=vacancy.id,
-            ideal_candidate=data["waiting_for_ideal_candidate"],
-            demographics=data["waiting_for_demographics"],
-            qualities=data["waiting_for_qualities"],
-            skills=data["waiting_for_skills"],
-        )
-        session.add(new_candidate_portrait)
-        session.commit()
-    else:
-        print("id of vacancy not found")
+    session = get_db()
+
+    try:
+        title_vacancy = data["waiting_for_title_vacancy"]
+        vacancy = session.query(Vacancies).filter_by(title=title_vacancy).first()
+
+        if vacancy:
+            # Проверяем, существует ли уже портрет кандидата для этой вакансии
+            existing_candidate_portrait = session.query(CandidatePortrait).filter_by(vacancy_id=vacancy.id).first()
+
+            if existing_candidate_portrait:
+                # Если портрет кандидата уже существует, обновляем его
+                existing_candidate_portrait.ideal_candidate = data["waiting_for_ideal_candidate"]
+                existing_candidate_portrait.demographics = data["waiting_for_demographics"]
+                existing_candidate_portrait.qualities = data["waiting_for_qualities"]
+                existing_candidate_portrait.skills = data["waiting_for_skills"]
+                session.commit()
+                print(f"Портрет кандидата для вакансии '{title_vacancy}' обновлен в базе.")
+            else:
+                # Если портрета кандидата для этой вакансии нет, создаем новый
+                new_candidate_portrait = CandidatePortrait(
+                    vacancy_id=vacancy.id,
+                    ideal_candidate=data["waiting_for_ideal_candidate"],
+                    demographics=data["waiting_for_demographics"],
+                    qualities=data["waiting_for_qualities"],
+                    skills=data["waiting_for_skills"],
+                )
+                session.add(new_candidate_portrait)
+                session.commit()
+                print(f"Портрет кандидата для вакансии '{title_vacancy}' создан в базе.")
+        else:
+            print(f"Вакансия с названием '{title_vacancy}' не найдена.")
+
+    except Exception as e:
+        session.rollback()
+        print(f"Ошибка сохранения информации о кандидате: {e}")
+
+    finally:
+        session.close()
+
 
 # async def update_vacancy_description(title: str, description: str):
 #     async with get_db() as session:
@@ -100,6 +130,7 @@ def save_candidate_info(data: dict):
 #         await session.commit()
 async def update_vacancy_description(title: str, description: str):
     print('переход к update_vacancy_description')
+    session = get_db()
     vacancy = session.query(Vacancies).filter_by(title=title).first()
     if vacancy:
         vacancy.description = description
@@ -109,6 +140,7 @@ async def update_vacancy_description(title: str, description: str):
 
         
 async def get_vacancy_and_portrait_by_title(title: str):
+        session = get_db()
         vacancy = session.execute(
             text("""
                 SELECT v.*, cp.*
@@ -166,13 +198,14 @@ async def get_vacancy_and_portrait_by_title(title: str):
     #     print("Вакансия с таким названием не найдена")
     #     return None
     
-async def generate_vacancy_by_ai(title):
+async def generate_vacancy_by_ai(message: types.Message, title):
     """Генерирует вакансию с помощью AI."""
     data_of_vacancy = await get_vacancy_and_portrait_by_title(title)
     print('!!!в generate_vacancy_by_ai', data_of_vacancy)
     prompt = 'напиши текст вакансии по следующим данным: ' + data_of_vacancy 
-    vacancy = await process_commitment(prompt)
+    vacancy = await process_commitment(message, prompt)
     await update_vacancy_description(title, vacancy)
+    await message.answer(vacancy)
 
 # 5.  Функция  для  сбора  информации  о  кандидате:
 async def collect_candidate_portrait_info(message: types.Message, state: FSMContext):
@@ -199,9 +232,9 @@ async def collect_candidate_portrait_info(message: types.Message, state: FSMCont
         save_candidate_info(data=data)
         await message.reply("Информация о кандидате собрана!")
         await show_summary(message=message, data=data)
-        if title:=data['waiting_for_title_vacancy']:
+        if title:=data[' _vacancy']:
             print('переход к генерации вакансии...', data)
-            vacancy = await generate_vacancy_by_ai(title)
+            vacancy = await generate_vacancy_by_ai(message, title)
             # update_vacancy_description(title, vacancy)
         await state.clear()
     # return ideal_candidate, demographics, qualities, skills

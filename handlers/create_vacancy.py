@@ -19,7 +19,7 @@ from .utils.candidate import CandidateInfoStates
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine(DATABASE_URL, echo=True)
+
 
 logging.basicConfig(level=logging.INFO)
 keyboard = ReplyKeyboardMarkup(
@@ -33,7 +33,7 @@ keyboard = ReplyKeyboardMarkup(
 
 class VacancyInfoStates(StatesGroup):
     waiting_for_create_portrait = State()
-    waiting_for_title = State()
+    waiting_for_title_vacancy = State()
     waiting_for_conditions = State()
     waiting_for_requirements = State()
     waiting_for_responsibilities = State()
@@ -41,15 +41,11 @@ class VacancyInfoStates(StatesGroup):
     waiting_for_priority = State()
 
 # 3.  Функция  для  создания  соединения  с  PostgreSQL:**
-async def get_db():
-    async_engine = create_async_engine(DATABASE_URL, echo=True)  # Echo=True для вывода SQL-запросов
-    async_session = async_sessionmaker(
-        async_engine, expire_on_commit=False, class_=AsyncSession
-    )
-    async with async_session() as session:
-        yield session
-Session = sessionmaker(bind=engine)
-session = Session()
+def get_db():
+    engine = create_engine(DATABASE_URL, echo=True)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
 
 # 4.  Функция  для  сохранения  информации  о  кандидате  в  базу:**
 # async def save_vacancy_info(data: Dict[str, Any]):
@@ -59,16 +55,49 @@ session = Session()
 #         new_vacancy = Vacancies(title=data["waiting_for_title"], conditions=data["waiting_for_conditions"], requirements=data["waiting_for_requirements"], responsibilities=data["waiting_for_responsibilities"], interview_questions=data["waiting_for_interview_questions"], priority=data["waiting_for_priority"])
 #         session.add(new_vacancy)
 #         await session.commit()
+# def save_vacancy_info(data: dict):
+#     """Сохраняет информацию о вакансии в базу данных."""
+#     session = get_db()  # Получаем сессию с базой данных
+#     # Проверяем, существует ли вакансия с таким же названием в базе
+#     # Если да, выдаем сообщение об ошибке и возвращаемся
+#     # Если нет, сохраняем новую вакансию в базу и отправляем сообщение о успешном сохранении
+#     title = data["waiting_for_title_vacancy"]
+#     existing_vacancy = session.query(Vacancies).filter_by(title=title).first()
+#     if existing_vacancy:
+#         print(f"Вакансия с названием '{title}' уже существует.")
+#         return
+#     else:
+#         new_vacancy = Vacancies(
+#             title=data["waiting_for_title_vacancy"],
+#             conditions=data["waiting_for_conditions"],
+#             requirements=data["waiting_for_requirements"],
+#             responsibilities=data["waiting_for_responsibilities"],
+#             interview_questions=data["waiting_for_interview_questions"],
+#             priority=data["waiting_for_priority"],
+#         )
+#         session.add(new_vacancy)
+#         session.commit()
 def save_vacancy_info(data: dict):
     """Сохраняет информацию о вакансии в базу данных."""
-    title = data["waiting_for_title"]
+    session = get_db()  # Получаем сессию с базой данных
+    
+    # Проверяем, существует ли вакансия с таким же названием в базе
+    title = data["waiting_for_title_vacancy"]
     existing_vacancy = session.query(Vacancies).filter_by(title=title).first()
+    
     if existing_vacancy:
-        print(f"Вакансия с названием '{title}' уже существует.")
-        return
+        # Если вакансия уже существует, обновляем ее
+        existing_vacancy.conditions = data["waiting_for_conditions"]
+        existing_vacancy.requirements = data["waiting_for_requirements"]
+        existing_vacancy.responsibilities = data["waiting_for_responsibilities"]
+        existing_vacancy.interview_questions = data["waiting_for_interview_questions"]
+        existing_vacancy.priority = data["waiting_for_priority"]
+        session.commit()
+        print(f"Вакансия с названием '{title}' сохранена в базу.")
     else:
+        # Если вакансии с таким названием нет, просто сохраняем новую
         new_vacancy = Vacancies(
-            title=data["waiting_for_title"],
+            title=data["waiting_for_title_vacancy"],
             conditions=data["waiting_for_conditions"],
             requirements=data["waiting_for_requirements"],
             responsibilities=data["waiting_for_responsibilities"],
@@ -77,6 +106,7 @@ def save_vacancy_info(data: dict):
         )
         session.add(new_vacancy)
         session.commit()
+        print(f"Вакансия с названием '{title}' сохранена в базу.")
 
 # 5.  Функция  для  сбора  информации  о  кандидате:
 async def collect_vacancy_info(message: types.Message, state: FSMContext):
@@ -84,8 +114,8 @@ async def collect_vacancy_info(message: types.Message, state: FSMContext):
         "in collect_vacancy_info"
     )
     global keyboard
-    if await state.get_state() == VacancyInfoStates.waiting_for_title:
-        await state.update_data(waiting_for_title=message.text) # (waiting_for_conditions=message.text)
+    if await state.get_state() == VacancyInfoStates.waiting_for_title_vacancy:
+        await state.update_data(waiting_for_title_vacancy=message.text) # (waiting_for_conditions=message.text)
         await state.set_state(VacancyInfoStates.waiting_for_conditions)
         await message.reply("Опишите условия работы: график, зп, удаленно/офлайн, бонусы, KPI?", reply_markup=keyboard)
     elif await state.get_state() == VacancyInfoStates.waiting_for_conditions:
@@ -121,7 +151,7 @@ async def collect_vacancy_info(message: types.Message, state: FSMContext):
         await show_summary(message=message, data=data)
         await message.answer('Хорошо! Давайте соберем информацию о кандидате.')
         await state.set_state(CandidateInfoStates.waiting_for_ideal_candidate)
-        await state.update_data(waiting_for_title_vacancy=data["waiting_for_title"])
+        await state.update_data(waiting_for_title_vacancy=data["waiting_for_title_vacancy"])
         await state.set_state(CandidateInfoStates.waiting_for_ideal_candidate)
         keyboard = ReplyKeyboardMarkup(
                 keyboard=[
@@ -138,14 +168,14 @@ async def collect_vacancy_info(message: types.Message, state: FSMContext):
         
 
 async def show_summary(message: Message, data: Dict[str, Any]) -> None:
-    waiting_for_title = data["waiting_for_title"]
+    waiting_for_title_vacancy = data["waiting_for_title_vacancy"]
     waiting_for_conditions = data["waiting_for_conditions"]
     waiting_for_requirements = data["waiting_for_requirements"]
     waiting_for_responsibilities = data["waiting_for_responsibilities"]
     waiting_for_interview_questions = data["waiting_for_interview_questions"]
     waiting_for_priority = data["waiting_for_priority"]
     await message.answer(
-        f"Условия работы: {waiting_for_title}\n\n"
+        f"Название вакансии: {waiting_for_title_vacancy}\n\n"
         f"Условия работы: {waiting_for_conditions}\n\n"
         f"Требования: {waiting_for_requirements}\n\n"
         f"Обязанности: {waiting_for_responsibilities}\n\n"
