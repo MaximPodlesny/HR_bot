@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from config import DATABASE_URL
 
 # try:
-engine = create_engine(DATABASE_URL, echo=True)  # Echo=True для вывода SQL-запросов
+engine = create_engine(DATABASE_URL.replace("'", "") , echo=True)  # Echo=True для вывода SQL-запросов
 print('engine')
 # except:
 # print("Ошибка подключения к базе данных")

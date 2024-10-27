@@ -195,13 +195,12 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
     answer = await collect_candidate_portrait_info(message, state)
 
 # Обработчик отправки файла
-# @dp.message_handler(content_types=["document", "photo"])
-@router.message(F.document)#content_types=["document", "photo"])
-# @dp.message_handler(ContentTypesFilter(content_types=["document"]))
+@router.message(F.document)
 async def handle_file(message: types.Message):
     if message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
+        print(message)
         # await message.reply(f"Получен файл: {file_name}")
         # await bot.send_document(chat_id=message.chat.id, document=file_id, caption="Загруженный файл")
         keyboard = ReplyKeyboardMarkup(
@@ -296,14 +295,14 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
               **Твои  основные  задачи:**\
               *   **Поиск  кандидатов на вакансию:**  Помоги  найти кандидаов на вакансии  через  HeadHunter  или собственную базу резюме.\
               *   **Если ты получаешь мало информации о вакансии(Обязательно должны быть следующие параметры:\
-портрет кандидата: пол / возраст / хотя бы 2 личных качества / минимальный опыт\
+портрет кандидата: Каким должен быть идеальный кандидат?: пол / возраст / хотя бы 2 личных качества / минимальный опыт / навыки\
 условия: график / зп / удаленно-офлайн / бонусы есть-нет / kpi есть-нет\
 требования: хотя бы 2 качества/навыка\
 обязанности: перечислено что будет делать кандидат на работе, хотя бы 2 задачи указано\
 вопросы на интервью: минимум 3 вопроса и какой должен быть идеальный ответ\
-на что приоритетнее отталкиваться при финальном выборе: указано хотя что-то одно ):** 1-2 пункта из списка - напиши подсказку, какую информацию предоставить.\
-              *   **Если ты получаешь всю информацию о вакансии:** прописаны все пункты о вакансии в полном объеме - необходимо вызвать функцию 'save_vacancy()'\
-              *   **Если ты получаешь недостаточно информации о вакансии:** до 3 пунктов о вакансии начни задавать уточняющие вопросы по каждому пункту отдельно, ты будешь помнить каждый ответ от пользователя, так ка у тебя есть память.'\
+на что приоритетнее отталкиваться при финальном выборе: указано хотя что-то одно ):** 1-2 пункта из списка не придумывай, а напиши подсказку, какую информацию предоставить.\
+              *   **Если ты получаешь всю информацию о вакансии:** прописаны все пункты о вакансии в полном объеме, для этого проверяй всю переписку, - необходимо вызвать функцию 'save_vacancy()'\
+              *   **Если ты получаешь недостаточно информации о вакансии:** до 3 пунктов о вакансии не придумывай, а начни задавать уточняющие вопросы по каждому пункту отдельно, ты будешь помнить каждый ответ от пользователя, так ка у тебя есть память. Пример уточняющего вапроса: Вы не написали желаемяй возраст кандидата. Уточните его, пожалуйста.'\
               *   **Применение функций:**  Для выполнения поставленных задачь обязательно применяй следующие функции: 'save_vacancy()' - для сохранения вакансии в базе данных.\
               *   **Отправка  вакансии:**  Помоги  отправить вакансию  на  HeadHunter  или  Bitrix24.\
               *   **Создание  лидов  в  Bitrix24:**  Создавай  новые  лиды  в  Bitrix24  для  кандидатов,  которые  связались  с  ботом.\
@@ -379,16 +378,16 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
             await send_sms_for_help_create_vacancy(message, state)
         elif function_name == "save_vacancy":
             print('!!!! сохраняет вакансию в бд')
-            title_of_vacancy = arguments["title_of_vacancy"]
-            conditions = arguments["conditions"]
-            requirements = arguments["requirements"]
-            responsibilities = arguments["responsibilities"]
-            interview_questions = arguments["interview_questions"]
-            priority = arguments["priority"]
-            ideal_candidate = arguments["ideal_candidate"]
-            demographics = arguments["demographics"]
-            qualities = arguments["qualities"]
-            skills = arguments["skills"]
+            title_of_vacancy = arguments.get("title_of_vacancy", 'уточнить название вакансии')
+            conditions = arguments.get("conditions", 'уточнить условия')
+            requirements = arguments.get("requirements", 'уточнить требования')
+            responsibilities = arguments.get("responsibilities", 'уточнить обязанности')
+            interview_questions = arguments.get("interview_questions", 'уточнить вопросы для интервью')
+            priority = arguments.get("priority", 'уточнить преоритетные требования к кандидату')
+            ideal_candidate = arguments.get("ideal_candidate", 'уточнить каким должен быть идеальный кандидат')
+            demographics = arguments.get("demographics", 'уточнить демографические данные')
+            qualities = arguments.get("qualities", 'уточнить качества кандидата')
+            skills = arguments.get("skills", 'уточнить навыки')
             data = {"waiting_for_title_vacancy": title_of_vacancy,
                     "waiting_for_conditions": conditions,
                     "waiting_for_requirements": requirements,
@@ -400,23 +399,32 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                     "waiting_for_skills": skills,
                     "waiting_for_ideal_candidate": ideal_candidate,
                 }
-            await save_vacancy(data)
-            vacancy = await process_commitment(message, json.dumps(data))
-            await update_vacancy_description(title_of_vacancy, vacancy)
-            await message.answer(vacancy)
-            await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': vacancy}, state)
-            keyboard = ReplyKeyboardMarkup(
-                keyboard=[
-                    [
-                        types.KeyboardButton(text="Разместить на hh.ru"),
+            print(data, '\n\n')
+            
+            check_data = any(True for i in data.values() if 'уточнить' in i.lower() or 'не указано' in i.lower())
+            print('!!!!!\n!!!!!!\n!!!!!!\n\n', check_data)
+            if check_data:
+                await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': json.dumps(data)}, state)
+                history = await get_history_by_user_id(message.from_user.id, state)
+                await process_commitment_global(message, history, state)
+            else:
+                await save_vacancy(data)
+                vacancy = await process_commitment(message, json.dumps(data))
+                await update_vacancy_description(title_of_vacancy, vacancy)
+                await message.answer(vacancy)
+                await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': vacancy}, state)
+                keyboard = ReplyKeyboardMarkup(
+                    keyboard=[
+                        [
+                            types.KeyboardButton(text="Разместить на hh.ru"),
+                        ],
+                        [
+                            types.KeyboardButton(text="Переписать"),
+                        ],
                     ],
-                    [
-                        types.KeyboardButton(text="Переписать"),
-                    ],
-                ],
-                resize_keyboard=True
-            )
-            await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
+                    resize_keyboard=True
+                )
+                await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
     else:
         result = response.choices[0].message.content
         await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': result}, state)
