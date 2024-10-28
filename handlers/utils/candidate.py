@@ -28,6 +28,7 @@ class CandidateInfoStates(StatesGroup):
        waiting_for_demographics = State()
        waiting_for_qualities = State()
        waiting_for_skills = State()
+       waiting_for_data_of_candidate = State()
 
 cancel = keyboard = ReplyKeyboardMarkup(
             keyboard=[
@@ -232,11 +233,23 @@ async def collect_candidate_portrait_info(message: types.Message, state: FSMCont
         save_candidate_info(data=data)
         await message.reply("Информация о кандидате собрана!")
         await show_summary(message=message, data=data)
-        if title:=data[' _vacancy']:
+        if title:=data.get('waiting_for_title_vacancy', ''):
             print('переход к генерации вакансии...', data)
             vacancy = await generate_vacancy_by_ai(message, title)
             # update_vacancy_description(title, vacancy)
-        await state.clear()
+            await state.clear()
+        else:
+            await state.set_state(CandidateInfoStates.waiting_for_data_of_candidate)
+            keyboard = ReplyKeyboardMarkup(
+                keyboard=[
+                    [
+                        # types.KeyboardButton(text="Сохранить тестовое задание"),
+                        types.KeyboardButton(text="Искать"),
+                    ]
+                ],
+                resize_keyboard=True
+            )
+            await message.answer(f"Поиск кандидата по базе?", reply_markup=keyboard)
     # return ideal_candidate, demographics, qualities, skills
 async def show_summary(message: Message, data: Dict[str, Any]) -> None:
     waiting_for_ideal_candidate = data["waiting_for_ideal_candidate"]

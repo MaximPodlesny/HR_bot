@@ -9,8 +9,10 @@ from config import GPT_KEY
 from db.create_table import Vacancies
 from handlers.utils.chat_history import ChatHistory
 from handlers.utils.get_history_by_user_id import get_history_by_user_id
+from handlers.utils.gpt_for_analise_resumes import search_good_resumes
 from handlers.utils.record_history_by_user_id import record_history_by_user_id
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
+from handlers.utils.parser_pdf import parser
 # from aiogram.dispatcher.filters import ContentTypesFilter
 # from bot import bot
 from .search_candidate import search_c
@@ -22,11 +24,10 @@ from aiogram.fsm.state import State, StatesGroup
 
 router = Router()
 
-# class CandidateInfoStates(StatesGroup):
-#        waiting_for_ideal_candidate = State()
-#        waiting_for_demographics = State()
-#        waiting_for_qualities = State()
-#        waiting_for_skills = State()
+class DocumentInfoStates(StatesGroup):
+       waiting_for_id_document = State()
+       waiting_for_name_document = State()
+       waiting_for_data_of_resumes = State()
 
 # Обработчик ответа Cancel
 @router.message(F.text == "Отмена")
@@ -162,6 +163,16 @@ async def process_my_data(message: types.Message):
 # @router.message(F.text == "Поиск кандидата" | F.text == "К поиску кандидата")
 @router.message(F.text.in_(["Поиск кандидата","К поиску кандидата", "Создать портрет"]))
 async def info_for_vacancy(message: types.Message, state: FSMContext):
+    await state.set_state(DocumentInfoStates)
+    data = await state.get_data()
+    list_structured_resumes = await parser(data['waiting_for_id_document'])
+    await state.update_data(waiting_for_data_of_resumes=list_structured_resumes)
+
+    with open("resumes.txt", "w", encoding='utf-8') as f:
+        for k, v in enumerate(json.loads(list_structured_resumes).items()):  # json.loads преобразует json в python-объекты 
+            print('i - ', v)
+            print(f'{v[0]}: {v[1]}', file=f)
+
     await message.answer('Хорошо! Давайте соберем информацию о кандидате.')
     await state.set_state(CandidateInfoStates.waiting_for_ideal_candidate)
     keyboard = ReplyKeyboardMarkup(
@@ -194,15 +205,46 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
 async def info_for_vacancy(message: types.Message, state: FSMContext):
     answer = await collect_candidate_portrait_info(message, state)
 
+@router.message(CandidateInfoStates.waiting_for_data_of_candidate)
+@router.message(F.text == "Искать")
+async def info_for_vacancy(message: types.Message, state: FSMContext):
+    # data_of_candidate = await state.get_data()
+    # print('data_of_candidate - ', data_of_candidate)
+    # await state.set_state(DocumentInfoStates)
+    data = await state.get_data()
+    data_of_candidate = {
+        'идеальный кандидат': data['waiting_for_ideal_candidate'],
+        'демографические данные': data['waiting_for_demographics'],
+        'качества кандидата': data['waiting_for_qualities'],
+        'навыка кандидата': data['waiting_for_skills'],
+    }
+    
+    data_of_resumes = data['waiting_for_data_of_resumes']
+    await search_good_resumes(message, data_of_resumes, data_of_candidate)
+
+# @router.message(CandidateInfoStates.waiting_for_data_of_candidate)
+# @router.message(F.text.not_in([
+#     "Поиск кандидата", "Сохранить тестовое задание", "Найти кандидата", "собственная база", 
+#     "через hh", "К созданию вакансии", "Создать вакансию", "К поиску кандидата", "Отмена"
+# ]))
+# async def process_ai(message: types.Message, state: FSMContext):
+#     data_of_candidate = message.text
+#     print('data_of_candidate - ', data_of_candidate)
+#     await state.set_state(DocumentInfoStates)
+#     data = await state.get_data()
+#     data_of_resumes = data['waiting_for_data_of_resumes']
+#     await search_good_resumes(message, data_of_resumes, data_of_candidate)
+
 # Обработчик отправки файла
 @router.message(F.document)
-async def handle_file(message: types.Message):
+async def handle_file(message: types.Message, state: FSMContext):
     if message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
-        print(message)
-        # await message.reply(f"Получен файл: {file_name}")
-        # await bot.send_document(chat_id=message.chat.id, document=file_id, caption="Загруженный файл")
+        await state.set_state(DocumentInfoStates)
+        await state.update_data(waiting_for_id_document=file_id)
+        await state.update_data(waiting_for_name_document=file_id)
+        
         keyboard = ReplyKeyboardMarkup(
             keyboard=[
                 [
@@ -438,6 +480,3 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
         # else:
         #     print(f"Вакансия с названием '{title_of_vacancy}' не найдена.")
         return result
-
-
-        
