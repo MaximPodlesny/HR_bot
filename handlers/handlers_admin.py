@@ -5,11 +5,11 @@ from aiogram.filters import StateFilter
 from aiogram.types import ReplyKeyboardMarkup
 from openai import AsyncOpenAI
 
-from config import GPT_KEY
+from config import GPT_KEY, ADMIN
 from db.create_table import Vacancies
 from handlers.utils.chat_history import ChatHistory
 from handlers.utils.get_history_by_user_id import get_history_by_user_id
-from handlers.utils.gpt_for_analise_resumes import search_good_resumes
+from handlers.utils.gpt_for_analise_resumes import ResumesInfoStates, search_good_resumes
 from handlers.utils.record_history_by_user_id import record_history_by_user_id
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
 from handlers.utils.parser_pdf import parser
@@ -30,8 +30,9 @@ class DocumentInfoStates(StatesGroup):
        waiting_for_data_of_resumes = State()
 
 # Обработчик ответа Cancel
-@router.message(F.text == "Отмена")
+@router.message((F.text == "Отмена") & (F.from_user.id == ADMIN))
 async def process_hh(message: types.Message):
+    print('in cancel admin')
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -44,8 +45,9 @@ async def process_hh(message: types.Message):
     await message.answer("Хорошо! Выберите, что будем делать дальше:", reply_markup=keyboard)
 
 # Если есть портрет кандидата
-@router.message(F.text == "Нет портрета")
+@router.message((F.text == "Нет портрета") & (F.from_user.id == ADMIN))
 async def find_candidate(message: types.Message, state: FSMContext):
+    print('in Нет портрета admin')
     keyboard = ReplyKeyboardMarkup(
             keyboard=[
                 [
@@ -59,7 +61,7 @@ async def find_candidate(message: types.Message, state: FSMContext):
     await state.update_data(waiting_for_create_portrait='создать')
 
 # Обработчик ответа "ДА"
-@router.message(F.text == "Найти кандидата")
+@router.message((F.text == "Найти кандидата") & (F.from_user.id == ADMIN))
 async def find_candidate(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
@@ -73,7 +75,7 @@ async def find_candidate(message: types.Message):
     await message.answer("Хорошо! Мы будем искать кандидатов по загруженной информации или через HH ?", reply_markup=keyboard)
 
 # Обработчик создания вакансии
-@router.message(F.text.in_(["Создать вакансию","К созданию вакансии", "через hh"]))
+@router.message((F.text.in_(["Создать вакансию","К созданию вакансии", "через hh"])) & (F.from_user.id == ADMIN))
 async def process_hh(message: types.Message, state: FSMContext):
     await message.answer("Нам нужна будет следующяя информация:\
         \
@@ -154,14 +156,14 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
     answer = await collect_vacancy_info(message, state)
 
 # Обработчик ответа "собственная база"
-@router.message(F.text == "собственная база")
+@router.message((F.text == "собственная база") & (F.from_user.id == ADMIN))
 async def process_my_data(message: types.Message):
     # search_candidate()
     await message.answer("Загрузите резюме(csv) и тестовое задание(txt)")
 
 # Обработчик после получения ботом файла
 # @router.message(F.text == "Поиск кандидата" | F.text == "К поиску кандидата")
-@router.message(F.text.in_(["Поиск кандидата","К поиску кандидата", "Создать портрет"]))
+@router.message((F.text.in_(["Поиск кандидата","К поиску кандидата", "Создать портрет"])) & (F.from_user.id == ADMIN))
 async def info_for_vacancy(message: types.Message, state: FSMContext):
     await state.set_state(DocumentInfoStates)
     data = await state.get_data()
@@ -206,7 +208,7 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
     answer = await collect_candidate_portrait_info(message, state)
 
 @router.message(CandidateInfoStates.waiting_for_data_of_candidate)
-@router.message(F.text == "Искать")
+@router.message((F.text == "Искать") & (F.from_user.id == ADMIN))
 async def info_for_vacancy(message: types.Message, state: FSMContext):
     # data_of_candidate = await state.get_data()
     # print('data_of_candidate - ', data_of_candidate)
@@ -220,7 +222,12 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
     }
     
     data_of_resumes = data['waiting_for_data_of_resumes']
-    await search_good_resumes(message, data_of_resumes, data_of_candidate)
+    await search_good_resumes(message, data_of_resumes, data_of_candidate, state)
+    # await state.set_state(ResumesInfoStates.waiting_for_list_contact)
+    data = await state.get_data()
+    data_contacts_for_send = data.get('waiting_for_list_contact', [])
+    # print(f'data {data}', f'data_contacts_for_send {data_contacts_for_send} {type(data_contacts_for_send )}')
+    print('!!! data_contacts_for_send - ', [(t if (t:=str(a).replace(' ', '').replace('(', '').replace(')', '').replace('-', ''))[0] == '+' else f'+7{t[1:]}', str(b)) for a, b in data_contacts_for_send] if data_contacts_for_send else [])
 
 # @router.message(CandidateInfoStates.waiting_for_data_of_candidate)
 # @router.message(F.text.not_in([
@@ -236,7 +243,7 @@ async def info_for_vacancy(message: types.Message, state: FSMContext):
 #     await search_good_resumes(message, data_of_resumes, data_of_candidate)
 
 # Обработчик отправки файла
-@router.message(F.document)
+@router.message((F.document) & (F.from_user.id == ADMIN))
 async def handle_file(message: types.Message, state: FSMContext):
     if message.document:
         file_id = message.document.file_id
@@ -271,7 +278,7 @@ async def handle_file(message: types.Message, state: FSMContext):
 #     )
 
 # Переписать текст вакансии
-@router.message(F.text.in_(["Переписать"]))
+@router.message((F.text.in_(["Переписать"])) & (F.from_user.id == ADMIN))
 async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
     await message.answer('Хорошо! Давайте перепишем...')
     await state.set_state(ChatHistory) 
@@ -291,10 +298,10 @@ async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
     #         )
     # await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
 # Обработчик выбора проблемы
-@router.message(F.text.not_in([
+@router.message((F.text.not_in([
     "Поиск кандидата", "Сохранить тестовое задание", "Найти кандидата", "собственная база", 
     "через hh", "К созданию вакансии", "Создать вакансию", "К поиску кандидата", "Отмена"
-]))
+])) & (F.from_user.id == ADMIN))
 async def process_ai(message: types.Message, state: FSMContext):
     await state.set_state(ChatHistory) 
     await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)

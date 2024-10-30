@@ -23,7 +23,7 @@ async def made_structure_by_gpt(resumes, client):
     """Получает ответ от ChatGPT для обработки резюме."""
     prompt = """
     Я передаю тебе резюме. 
-    Обработай резюме и выведи информацию в следующем json формате через запятую:
+    Обработай резюме и выведи информацию в следующем json формате через запятую на русском языке:
 
     Резюме № [номер резюме]:
     [Информация о резюме]
@@ -41,7 +41,7 @@ async def made_structure_by_gpt(resumes, client):
 
     # response = await client.chat.completions.create(
     response = await client.beta.chat.completions.parse(
-        model="gpt-4o-2024-08-06",
+        model= "gpt-4o-mini", #"gpt-4o-2024-08-06",
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": resumes},

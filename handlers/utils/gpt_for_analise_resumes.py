@@ -3,9 +3,14 @@ import json
 from openai import OpenAI, AsyncOpenAI
 from config import GPT_KEY
 from aiogram import types
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 # from dotenv import load_dotenv
 
 # load_dotenv()
+
+class ResumesInfoStates(StatesGroup):
+       waiting_for_list_contact = State()
 
 
 client = AsyncOpenAI(api_key=GPT_KEY)
@@ -93,12 +98,36 @@ async def process_commitment(message: types.Message, resume, portrait):
     else:
         await message.answer(response.choices[0].message.content)
     
-async def search_good_resumes(message: types.Message, resumes, portrait):
+async def search_good_resumes(message: types.Message, resumes, portrait, state: FSMContext):
+    await state.set_state(ResumesInfoStates.waiting_for_list_contact)
+    
     for name, resume in enumerate(json.loads(resumes).items()):
         result = await process_commitment(message, f'{resume[0]}: {resume[1]}', portrait)
         if result:
+            try:
+                data = await state.get_data()
+                if "waiting_for_list_contact" not in data or data.get('waiting_for_list_contact') == None:
+                    data["waiting_for_list_contact"] = [(resume[1].get('Телефон', ''), resume[1].get('Телеграм', ''))]
+                    await state.set_data(data)
+                else:
+                    data['waiting_for_list_contact'].append((resume[1].get('Телефон', ''), resume[1].get('Телеграм', '')))
+                    await state.set_data(data)
+
+                # if data.get('waiting_for_list_contact') == None or not data.get('waiting_for_list_contact'):
+                #     print('!!!!\n\n при пустом значении\n')
+                #     await state.update_data(waiting_for_list_contact=[])
+                #     data = await state.get_data()
+                #     print('!!!! data', data['waiting_for_list_contact'])
+                # contacts = data.get('waiting_for_list_contact', []).append((resume[1].get('Телефон', ''), resume[1].get('Телеграм', '')))
+            except:
+                print('ошибка при сохранении контактов')
+            
+            try:
+                await message.answer(f"{resume[1].get('Телефон', '')}\n{resume[1].get('Телеграм', '')}")
+            except:
+                pass
             await message.answer(f"Резюме подходит под портрет: {resume}")
-            await message.answer(f"Резюме подходит под портрет: {result}")
+            # await state.update_data(waiting_for_list_contact=contacts)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
