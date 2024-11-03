@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from alembic import context
 from config import DATABASE_URL
 
 # try:
@@ -32,6 +33,7 @@ class Vacancies(Base):
     responsibilities = Column(String)
     interview_questions = Column(String)
     priority = Column(String)
+    test_task = Column(String)
 
 class CandidatePortrait(Base):
     __tablename__ = "candidate_portrait"
@@ -79,6 +81,7 @@ session = Session()
 # )
 # session.add(new_candidate_portrait)
 # session.commit()
+
 
 if __name__ == "__main__":
     create_tables()
