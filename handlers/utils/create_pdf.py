@@ -257,16 +257,14 @@ resumes = [
 
 **Contact Information:**
 
-*   Phone: +7 (911) 111-11-11
+*   Phone: +7 (929) 838-38-64
 *   Email: dmitry.sidorov@example.com
 *   Telegram: [link to profile]
 
 **Work Experience:**
 
-*   **Data Scientist**,  **OOO "Laboratory"**,  **Moscow**,  **2021 - Present**
-    *   Developing and implementing machine learning models to solve business problems.
-    *   Analyzing large datasets using Python, Pandas, Scikit-learn.
-    *   Visualizing data using matplotlib and seaborn.
+*   **SMM Manager**,  **OOO "Agency"**,  **Saint Petersburg**,  **2020 - Present**
+    *   Developing and implementing SMM strategies for clients.
 *   **Data Analyst**,  **OOO "Company"**,  **Moscow**,  **2019 - 2021**
     *   Analyzing data to identify trends and patterns.
     *   Preparing reports and presentations for management.
@@ -295,7 +293,7 @@ resumes = [
 
 **Contact Information:**
 
-*   Phone: +7 (921) 123-45-67
+*   Phone: 8 (989) 819-80-15
 *   Email: ekaterina.ivanova@example.com
 *   Instagram: [link to profile]
 

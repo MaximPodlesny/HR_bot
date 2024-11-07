@@ -17,23 +17,26 @@ client = AsyncOpenAI(api_key=GPT_KEY)
 async def process_commitment(message: types.Message, resume, portrait):
 # async def process_commitment(pr):
 
-    prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти подходящих кандидатов на вакансию.\
+    prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти подходящих кандидатов на вакансию. Ты помнишь всю переписку с пользователем.\
               **Твоя  задача:**\
-              *   **Проанализировать резюме:** ты получаешь портрет кандидата и резюме и тебе надо разобраться подходит ли резюме под портрет кандидата.\
-              *   **Если резюме подходит:** вызвать функцию 'add_resume()'\
-              *   **Если резюме не подходит:** вызвать функцию 'avoid_resume()'"
+              *   **Если ты получил докунент с тестовым заданием:**  собери всю необходимую инфонмацию: название вакансии, название документа, id документа, время выполнения задания в днях, и вызови функцию 'save_test_task()'.\
+              *   **Если ты получил докунент с резюме:**  тебе необходимо уточнить нужно ли создавать вакансию, если да то приступаешь к ее созданию, или если нужно создать портрет кандидата, по каторому ты будешь выбирать подходящие резюме, уточняешь всю информацию, задавая вопросы, и вызываешь функцию 'look_for_candidate_by_db()').\
+              *   **Применение функций:**  Для выполнения поставленных задачь обязательно применяй следующие функции: 'save_test_task()' - Сохраняет в базу данных тестовое задание в виде id документа, названия документа, названия вакансии и времени выполнения задания, 'look_for_candidate_by_db()'- ищет кандидатов в базе резюме по портрету(описанию).\"
     
     tools = [
         {"type": "function",
          "function": {
-                "name": "add_resume",
-                "description": "Добавляет резюме в список.",
+                "name": "save_test_task",
+                "description": "Сохраняет в базу данных тестовое задание в виде id документа, названия документа, названия вакансии и времени выполнения задания.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "resume": {"type": "string"},
+                        "id_document": {"type": "string"},
+                        "name_document": {"type": "string"},
+                        "title_of_vacance": {"type": "string"},
+                        "time_to_complete": {"type": "string"},
                     },
-                    "required": ["resume"],
+                    "required": ["id_document", "name_document", "title_of_vacance", "time_to_complete"],
                 },
             },
         },
@@ -130,11 +133,3 @@ async def search_good_resumes(message: types.Message, resumes, portrait, state: 
             except:
                 pass
             await message.answer(f"Резюме подходит под портрет: {resume}")
-
-            # await state.update_data(waiting_for_list_contact=contacts)
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(process_commitment('Hi! How are you?'))
-    loop.close()
-

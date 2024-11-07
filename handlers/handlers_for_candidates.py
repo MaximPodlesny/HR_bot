@@ -7,15 +7,19 @@ from openai import AsyncOpenAI
 
 from config import GPT_KEY, ADMIN
 from db.create_table import Vacancies
+from handlers.questionnaire import FirstInterviewInfoStates, SecondInterviewInfoStates, collect_responses_interviews_info, interview, poll_first_interview
+from handlers.utils.add_admin import add_admin_id
 from handlers.utils.chat_history import ChatHistory
+from handlers.utils.del_admin import del_admin_id
 from handlers.utils.get_history_by_user_id import get_history_by_user_id
 from handlers.utils.get_all_vacansies import get_vacancies
 from handlers.utils.get_vacancy_by_title import get_vacancy
 from handlers.utils.gpt_for_analise_resumes import ResumesInfoStates, search_good_resumes
-from handlers.utils.gpt_for_interview import process_interview
+from handlers.utils_for_candidate.gpt_for_interview import process_interview
 from handlers.utils.record_history_by_user_id import record_history_by_user_id
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
 from handlers.utils.parser_pdf import parser
+from handlers.utils_for_candidate.update_candidate import new_candidate
 # from aiogram.dispatcher.filters import ContentTypesFilter
 # from bot import bot
 from .search_candidate import search_c
@@ -33,14 +37,51 @@ class DocumentInfoStates(StatesGroup):
        waiting_for_data_of_resumes = State()
 
 class UserchatInfoStates(StatesGroup):
+       name_of_user = State()
        chosen_vacancy = State()
        list_vacancies = State()
+       waiting_for_questions = State()
+
+# установка id для админки
+@router.message((F.text == "admin @"))
+async def process_add_admin(message: types.Message, state: FSMContext):
+    await add_admin_id(message.from_user.id)
+
+@router.message((F.text == "admin @ -"))
+async def process_del_admin(message: types.Message, state: FSMContext):
+    await del_admin_id(message.from_user.id)
+
+@router.message(FirstInterviewInfoStates())
+async def process_poll(message: types.Message, state: FSMContext):
+    answer = await collect_responses_interviews_info(message, state)
+
+@router.message(SecondInterviewInfoStates())
+async def process_poll(message: types.Message, state: FSMContext):
+    answer = await collect_responses_interviews_info(message, state)
+
+@router.message(UserchatInfoStates.name_of_user)
+async def process_poll(message: types.Message, state: FSMContext):
+    print('\n\n!!\n\n in state name')
+    await state.clear()
+    # await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)
+    # history = await get_history_by_user_id(message.from_user.id, state)
+    answer = await process_ai(message, state)
+    
 
 
+@router.message(UserchatInfoStates.waiting_for_questions)
+async def process_poll(message: types.Message, state: FSMContext):
+    await state.clear()
+    # await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)
+    # history = await get_history_by_user_id(message.from_user.id, state)
+    # await message.answer(, reply_markup=types.ReplyKeyboardRemove())
+    # resp = await process_commitment_global(message, history, state)
+    await process_ai(message, state)
 
 # Обработчик ответа Cancel
 @router.message((F.text == "Отмена") & (F.from_user.id != ADMIN))
-async def process_hh(message: types.Message):
+async def process_hh(message: types.Message, state: FSMContext):
+    await state.clear()
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -50,32 +91,14 @@ async def process_hh(message: types.Message):
         ],
         resize_keyboard=True
     )
-    await message.answer("Хорошо! Выберите, что будем делать дальше:", reply_markup=keyboard)
+    await message.answer("Хорошо! Что будем делать дальше?", reply_markup=keyboard)
 
-# Обработчик Пройти собеседование
-@router.message((F.text == "Пройти собеседование") & (F.from_user.id != ADMIN))
-async def find_candidate(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    title_of_vacancy = data['chosen_vacancy']
-    vacancy = await get_vacancy(title_of_vacancy)
-    await state.clear()
-    print(vacancy.description, await state.get_state())
-    questions = await process_interview(message, vacancy.description, state)
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                types.KeyboardButton(text="Отмена"),
-                # types.KeyboardButton(text="собственная база"),
-            ],
-        ],
-        resize_keyboard=True
-    )
-    await message.answer(f"Хорошо!\n{questions}", reply_markup=keyboard)
+
     
 
 # Выбор вакансии
 @router.message((F.text == "Выбрать вакансию") & (F.from_user.id != ADMIN))
-async def find_candidate(message: types.Message, state: FSMContext):
+async def choice_vacancy(message: types.Message, state: FSMContext):
     all_vacancies = await get_vacancies()
     # Формируем опрос
     options = [vacancy.title for vacancy in all_vacancies]
@@ -99,7 +122,7 @@ async def find_candidate(message: types.Message, state: FSMContext):
         keyboard=[
             [types.KeyboardButton(text=vacancy.title)]  # Создаем список кнопок
             for vacancy in all_vacancies
-        ],
+        ] + [[types.KeyboardButton(text="Отмена")]],
         resize_keyboard=True,
     )
     # Отправляем сообщение с клавиатурой
@@ -142,6 +165,7 @@ async def find_candidate(message: types.Message, state: FSMContext):
 # @router.message(F.from_user.id != ADMIN)
 @router.message(UserchatInfoStates.chosen_vacancy)
 async def answer_poll(message: types.Message, state: FSMContext):
+    await state.clear()
     # answer = await collect_vacancy_info(message, state)
     # Получаем выбранную вакансию
     chosen_vacancy = message.text
@@ -150,140 +174,142 @@ async def answer_poll(message: types.Message, state: FSMContext):
     await state.update_data(chosen_vacancy=chosen_vacancy)
     # Переходим в следующее состояние (например, для обработки дальнейших действий)
     await state.set_state(UserchatInfoStates)
+    await message.answer(f"Вы выбрали вакансию: {chosen_vacancy}.\n\nПройдите электронное собеседование:")
+    await interview(message, state)
     # Отправляем сообщение с выбранной вакансией
-    keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    types.KeyboardButton(text="Пройти собеседование"),
-                ],
-                [
-                    types.KeyboardButton(text="Отмена"),
-                ],
-            ],
-            resize_keyboard=True
-        )
+    # keyboard = ReplyKeyboardMarkup(
+    #         keyboard=[
+    #             [
+    #                 types.KeyboardButton(text="Пройти собеседование"),
+    #             ],
+    #             [
+    #                 types.KeyboardButton(text="Отмена"),
+    #             ],
+    #         ],
+    #         resize_keyboard=True
+    #     )
     
 
-    # await message.answer("Хорошо! Выберите, что будем делать дальше:", reply_markup=keyboard)
-    await message.answer(text=f"Вы выбрали вакансию: {chosen_vacancy}.\n\nПройдите электронное содеседование:", reply_markup=keyboard)
+    # # await message.answer("Хорошо! Выберите, что будем делать дальше:", reply_markup=keyboard)
+    # await message.answer(text=f"Вы выбрали вакансию: {chosen_vacancy}.\n\nПройдите электронное содеседование:", reply_markup=keyboard)
 
     # Переходим в следующее состояние (например, для обработки дальнейших действий)
     # await state.clear()
-    print('!!!!\n\n', await state.get_state())
-    await state.set_state(ResumesInfoStates.waiting_for_list_contact)
+    # print('!!!!\n\n', await state.get_state())
+    # await state.set_state(ResumesInfoStates.waiting_for_list_contact)
 
     
 
 # Обработчик создания вакансии
-@router.message((F.text.in_(["Создать вакансию","К созданию вакансии", "через hh"])) & (F.from_user.id != ADMIN))
-async def process_hh(message: types.Message, state: FSMContext):
-    await message.answer("Нам нужна будет следующяя информация:\
-        \
-        Название вакансии.\
-        \
-        Портрет Кандидата:\
-        \
-        *   Пол / Возраст:  Укажите  желаемый  пол  и  возраст  кандидата.\
-        *   Личные  качества:  Опишите  минимум  два  важных  для  вас  личных  качества  кандидата.\
-        *   Минимальный  опыт:  Укажите  минимальный  опыт  работы,  который  требуется  для  этой  вакансии.\
-        \
-        Условия:\
-        \
-        *   График  работы:  Укажите  желаемый  график  работы  (полный  день,  неполный  день,  гибкий  график  и  т.д.).\
-        *   Заработная  плата:  Укажите  желаемую  заработную  плату.\
-        *   Удаленная  работа / Офис:  Укажите,  будет  ли  работа  удаленной  или  в  офисе.\
-        *   Бонусы:  Укажите,  предусмотрены  ли  бонусы  для  этой  позиции.\
-        *   KPI:  Укажите,  будут  ли  использоваться  KPI  для  оценки  работы  кандидата.\
-        \
-        Требования:\
-        \
-        *   Качества / Навыки:  Опишите  минимум  два  важных  для  вас  качества  или  навыка  кандидата.\
-        \
-        Обязанности:\
-        \
-        *   Задачи:  Перечислите  минимум  две  основные  задачи,  которые  будет  выполнять  кандидат  на  этой  работе.\
-        \
-        Вопросы  на  интервью:\
-        \
-        *   Вопросы:  Сформулируйте  минимум  три  вопроса,  которые  вы  будете  задавать  кандидату  на  интервью.\
-        *   Идеальные  ответы:  Опишите  желаемые  ответы  на  эти  вопросы.\
-        \
-        Приоритеты  при  выборе:\
-        \
-        *   Приоритет:  Укажите,  на  что  вы  будете  обращать  внимание  в  первую  очередь  при  финальном  выборе  кандидата."
-    )
-    await message.answer('Хорошо! Давайте соберем информацию о вакансии.')
+# @router.message((F.text.in_(["Создать вакансию","К созданию вакансии", "через hh"])) & (F.from_user.id != ADMIN))
+# async def process_hh(message: types.Message, state: FSMContext):
+#     await message.answer("Нам нужна будет следующяя информация:\
+#         \
+#         Название вакансии.\
+#         \
+#         Портрет Кандидата:\
+#         \
+#         *   Пол / Возраст:  Укажите  желаемый  пол  и  возраст  кандидата.\
+#         *   Личные  качества:  Опишите  минимум  два  важных  для  вас  личных  качества  кандидата.\
+#         *   Минимальный  опыт:  Укажите  минимальный  опыт  работы,  который  требуется  для  этой  вакансии.\
+#         \
+#         Условия:\
+#         \
+#         *   График  работы:  Укажите  желаемый  график  работы  (полный  день,  неполный  день,  гибкий  график  и  т.д.).\
+#         *   Заработная  плата:  Укажите  желаемую  заработную  плату.\
+#         *   Удаленная  работа / Офис:  Укажите,  будет  ли  работа  удаленной  или  в  офисе.\
+#         *   Бонусы:  Укажите,  предусмотрены  ли  бонусы  для  этой  позиции.\
+#         *   KPI:  Укажите,  будут  ли  использоваться  KPI  для  оценки  работы  кандидата.\
+#         \
+#         Требования:\
+#         \
+#         *   Качества / Навыки:  Опишите  минимум  два  важных  для  вас  качества  или  навыка  кандидата.\
+#         \
+#         Обязанности:\
+#         \
+#         *   Задачи:  Перечислите  минимум  две  основные  задачи,  которые  будет  выполнять  кандидат  на  этой  работе.\
+#         \
+#         Вопросы  на  интервью:\
+#         \
+#         *   Вопросы:  Сформулируйте  минимум  три  вопроса,  которые  вы  будете  задавать  кандидату  на  интервью.\
+#         *   Идеальные  ответы:  Опишите  желаемые  ответы  на  эти  вопросы.\
+#         \
+#         Приоритеты  при  выборе:\
+#         \
+#         *   Приоритет:  Укажите,  на  что  вы  будете  обращать  внимание  в  первую  очередь  при  финальном  выборе  кандидата."
+#     )
+#     await message.answer('Хорошо! Давайте соберем информацию о вакансии.')
     
-    keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    types.KeyboardButton(text="Есть портрет"),
-                    types.KeyboardButton(text="Нет портрета"),
-                ],
-                [
-                    types.KeyboardButton(text="Отмена"),
-                ],
-            ],
-            resize_keyboard=True
-    )
-    await message.reply('У Вас уже есть портрет кандидата?', reply_markup=keyboard)
+#     keyboard = ReplyKeyboardMarkup(
+#             keyboard=[
+#                 [
+#                     types.KeyboardButton(text="Есть портрет"),
+#                     types.KeyboardButton(text="Нет портрета"),
+#                 ],
+#                 [
+#                     types.KeyboardButton(text="Отмена"),
+#                 ],
+#             ],
+#             resize_keyboard=True
+#     )
+#     await message.reply('У Вас уже есть портрет кандидата?', reply_markup=keyboard)
     
-@router.message(VacancyInfoStates.waiting_for_title_vacancy)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_title_vacancy)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     answer = await collect_vacancy_info(message, state)
 
-@router.message(VacancyInfoStates.waiting_for_conditions)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    print("in look_for_vacancy")
-    # await message.answer('Хорошо! Какими должны быть пол, возраст, минимальный опыт?')
-    # await state.set_state(CandidateInfoStates.waiting_for_demographics)
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_conditions)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     print("in look_for_vacancy")
+#     # await message.answer('Хорошо! Какими должны быть пол, возраст, минимальный опыт?')
+#     # await state.set_state(CandidateInfoStates.waiting_for_demographics)
+#     answer = await collect_vacancy_info(message, state)
 
-@router.message(VacancyInfoStates.waiting_for_requirements)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_requirements)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     answer = await collect_vacancy_info(message, state)
 
-@router.message(VacancyInfoStates.waiting_for_responsibilities)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_responsibilities)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     answer = await collect_vacancy_info(message, state)
 
-@router.message(VacancyInfoStates.waiting_for_interview_questions)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_interview_questions)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     answer = await collect_vacancy_info(message, state)
 
-@router.message(VacancyInfoStates.waiting_for_priority)
-async def info_for_vacancy(message: types.Message, state: FSMContext):
-    answer = await collect_vacancy_info(message, state)
+# @router.message(VacancyInfoStates.waiting_for_priority)
+# async def info_for_vacancy(message: types.Message, state: FSMContext):
+#     answer = await collect_vacancy_info(message, state)
 
-# Обработчик ответа "собственная база"
-@router.message(F.text == "собственная база")
-async def process_my_data(message: types.Message):
-    # search_candidate()
-    await message.answer("Загрузите резюме(csv) и тестовое задание(txt)")
+# # Обработчик ответа "собственная база"
+# @router.message(F.text == "собственная база")
+# async def process_my_data(message: types.Message):
+#     # search_candidate()
+#     await message.answer("Загрузите резюме(csv) и тестовое задание(txt)")
 
 
-@router.message((F.document) & (F.from_user.id != ADMIN))
-async def handle_file(message: types.Message, state: FSMContext):
-    if message.document:
-        file_id = message.document.file_id
-        file_name = message.document.file_name
-        await state.set_state(DocumentInfoStates)
-        await state.update_data(waiting_for_id_document=file_id)
-        await state.update_data(waiting_for_name_document=file_id)
+# @router.message((F.document) & (F.from_user.id != ADMIN))
+# async def handle_file(message: types.Message, state: FSMContext):
+#     if message.document:
+#         file_id = message.document.file_id
+#         file_name = message.document.file_name
+#         await state.set_state(DocumentInfoStates)
+#         await state.update_data(waiting_for_id_document=file_id)
+#         await state.update_data(waiting_for_name_document=file_id)
         
-        keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    # types.KeyboardButton(text="Сохранить тестовое задание"),
-                    types.KeyboardButton(text="Поиск кандидата"),
-                ],
-                [
-                    types.KeyboardButton(text="Сохранить тестовое задание"),
-                ]
-            ],
-            resize_keyboard=True
-        )
-        await message.answer(f"Получен файл: {file_name}! Что с ним сделать?", reply_markup=keyboard)
+#         keyboard = ReplyKeyboardMarkup(
+#             keyboard=[
+#                 [
+#                     # types.KeyboardButton(text="Сохранить тестовое задание"),
+#                     types.KeyboardButton(text="Поиск кандидата"),
+#                 ],
+#                 [
+#                     types.KeyboardButton(text="Сохранить тестовое задание"),
+#                 ]
+#             ],
+#             resize_keyboard=True
+#         )
+#         await message.answer(f"Получен файл: {file_name}! Что с ним сделать?", reply_markup=keyboard)
 
 # # Обработчик создания вакансии
 # @router.message(F.text.in_(["Создать вакансию","К созданию вакансии"]))
@@ -297,13 +323,13 @@ async def handle_file(message: types.Message, state: FSMContext):
 #     )
 
 # Переписать текст вакансии
-@router.message((F.text.in_(["Переписать"])) & (F.from_user.id != ADMIN))
-async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
-    await message.answer('Хорошо! Давайте перепишем...')
-    await state.set_state(ChatHistory) 
-    history = await get_history_by_user_id(message.from_user.id, state)
-    new_request = history + [{'role': 'user', 'content': 'Мне не понравился результат. Собери всю необходимую для написания вакансии информацию и сгенерируй поновой.'}]
-    resp = await process_commitment_global(message, new_request, state)
+# @router.message((F.text.in_(["Переписать"])) & (F.from_user.id != ADMIN))
+# async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
+#     await message.answer('Хорошо! Давайте перепишем...')
+#     await state.set_state(ChatHistory) 
+#     history = await get_history_by_user_id(message.from_user.id, state)
+#     new_request = history + [{'role': 'user', 'content': 'Мне не понравился результат. Собери всю необходимую для написания вакансии информацию и сгенерируй поновой.'}]
+#     resp = await process_commitment_global(message, new_request, state)
     # keyboard = ReplyKeyboardMarkup(
     #             keyboard=[
     #                 [
@@ -316,14 +342,33 @@ async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
     #             resize_keyboard=True
     #         )
     # await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
+
+
+async def aqeaintance_with_company(message: types.Message, state: FSMContext):
+    await message.answer("Презентация?")
+    await answer_questions(message, state)
+
+async def answer_questions(message: types.Message, state: FSMContext):
+    # await state.set_state(UserchatInfoStates.waiting_for_questions)
+    await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': "Не против ли вы ответить на ряд вопросов для дальнейшего отбора?"}, state)
+    await message.answer("Не против ли вы ответить на ряд вопросов для дальнейшего отбора?")
+
+async def aqeaintance(message: types.Message, state: FSMContext):
+    # await state.set_state(UserchatInfoStates.name_of_user)
+    await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': "Укажите ваше ФИО, чтобы продолжить общение"}, state)
+    await message.answer("Укажите ваше ФИО, чтобы продолжить общение")
+    
+
 # Обработчик выбора проблемы
 @router.message((F.text.not_in([
-    "Поиск кандидата", "Сохранить тестовое задание", "Найти кандидата", "собственная база", 
-    "через hh", "К созданию вакансии", "Создать вакансию", "К поиску кандидата", "Отмена"
+    "Пройти собеседование",
+    "Выбрать вакансию",
+    "Отмена"
 ])) & (F.from_user.id != ADMIN))
 async def process_ai(message: types.Message, state: FSMContext):
-    await state.set_state(ChatHistory) 
-    await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)
+    await state.set_state(ChatHistory)
+    if message.text != '/start':
+        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)
     history = await get_history_by_user_id(message.from_user.id, state)
     # await message.answer(, reply_markup=types.ReplyKeyboardRemove())
     resp = await process_commitment_global(message, history, state)
@@ -345,6 +390,8 @@ async def process_ai(message: types.Message, state: FSMContext):
         )
         await message.answer("Что делать дальше?", reply_markup=keyboard)
 
+
+
 # async def send_sms_for_help_create_vacancy(message: types.Message, state: FSMContext):
 #     await message.answer("К сожалению, данной информации не достаточно. Ответьте на следующие вопросы..")
 #     await process_hh(message, state)
@@ -359,41 +406,64 @@ client = AsyncOpenAI(api_key=GPT_KEY)
 async def process_commitment_global(message: types.Message, history, state: FSMContext):
     
 
-    prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание.\
+    prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание. Ты помнишь всю переписку.\
               **Твои  основные  задачи:**\
-              *   **Рассказывать о компании Catharsis**\
+              *   **Если не известно ФИО пользователя:** узнать фамилию, имя и отчество или вызови функцию 'aqeaintance()'\
+              *   **Если пользователь написал свои фамилию, имя и отчество:** если данных не хватает, то уточнить их, если данные в полном объеме - вызвать функцию 'new_candidate()'\
+              *   **Предлагать ознакомиться с компанией:** пример: 'Давайте для начала расскажу вам о нашей компании?'\
+              *   **Если пользователь согласен ознакомиться с компанией:** вызвать функцию 'aqeaintance_with_company()'\
+              *   **Предлагать ответить на вопросы по вакансии:** пример: Не против ли вы ответить на ряд вопросов для дальнейшего отбора?\
+              *   **Если пользователь готов ответить на вопросы:** вызвать функцию 'choice_vacancy()'\
+              *   **Для достижения результата:** используй следу.щие финкции:'choice_vacancy()' - выдает список имеющихся вакансий для выбора и запускает процесс опроса, 'aqeaintance_with_company()' - отправляет презентацию, 'new_candidate()' - создает нового кандидата в базе данных и предлагает ознакомиться с компанией.\
                 **Дополнительные  инструкции:**\
               *   Будь  вежлив  и  дружелюбен  в  общении  с  пользователями.\
               *   Предоставляй  четкие  и  понятные  инструкции ничего не придумывае, если не просят.\
               *   Используй  форматирование  текста  для  лучшего  визуального  представления  информации."
-              
+# 
  
     tools = [
         {"type": "function",
          "function": {
-                "name": "save_vacancy",
-                "description": "Отправляет информацию о вакансии в базу данных.",
+                "name": "aqeaintance_with_company",
+                "description": "Отправляет информацию о компании.",
+                # "parameters": {
+                #     "type": "object",
+                # },
+            },
+        },
+        {"type": "function",
+         "function": {
+                "name": "choice_vacancy",
+                "description": "Выбор вакансии из списка и опрос кандидата.",
+                # "parameters": {
+                #     "type": "object",
+                #     },
+                },
+        },
+        {"type": "function",
+         "function": {
+                "name": "aqeaintance",
+                "description": "Знакомство с кандидатом.",
+            },
+        },
+        {"type": "function",
+         "function": {
+                "name": "new_candidate",
+                "description": "Создает нового кандидата в базе данных.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "title_of_vacancy": {"type": "string"},
-                        "conditions": {"type": "string"},
-                        "requirements": {"type": "string"},
-                        "responsibilities": {"type": "string"},
-                        "interview_questions": {"type": "string"},
-                        "priority": {"type": "string"},
-                        "ideal_candidate": {"type": "string"},
-                        "demographics": {"type": "string"},
-                        "qualities": {"type": "string"},
-                        "skills": {"type": "string"},
+                        "sirname_candidate": {"type": "string"},
+                        "first_name_candidate": {"type": "string"},
+                        "patronymic_candidate": {"type": "string"},
                     },
-                    "required": ["title_of_vacancy", "conditions", "requirements", "responsibilities", "interview_questions", "priority", "ideal_candidate", "demographics", "qualities", "skills"],
+                    "required": ["sirname_candidate", "first_name_candidate", "patronymic_candidate"],
                 },
             },
         },
     ]
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {
             "role": "system",
@@ -414,63 +484,31 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
     
     # if response.choices[0].message.content == "function_call":
     if response.choices[0].message.content == None and arguments_object:
-        pass
-        # arguments = json.loads(arguments_object)
-        # print('!!!! в функции gpt')
-        # # function_call = response.choices[0].message.function_call
-        # function_name = tool_call.function.name
+        arguments = json.loads(arguments_object)
+        print('!!!! в функции gpt')
+        # function_call = response.choices[0].message.function_call
+        function_name = tool_call.function.name
         
-        # if function_name == "send_sms_for_help_create_vacancy":
-        #     await send_sms_for_help_create_vacancy(message, state)
-        # elif function_name == "save_vacancy":
-        #     print('!!!! сохраняет вакансию в бд')
-        #     title_of_vacancy = arguments.get("title_of_vacancy", 'уточнить название вакансии')
-        #     conditions = arguments.get("conditions", 'уточнить условия')
-        #     requirements = arguments.get("requirements", 'уточнить требования')
-        #     responsibilities = arguments.get("responsibilities", 'уточнить обязанности')
-        #     interview_questions = arguments.get("interview_questions", 'уточнить вопросы для интервью')
-        #     priority = arguments.get("priority", 'уточнить преоритетные требования к кандидату')
-        #     ideal_candidate = arguments.get("ideal_candidate", 'уточнить каким должен быть идеальный кандидат')
-        #     demographics = arguments.get("demographics", 'уточнить демографические данные')
-        #     qualities = arguments.get("qualities", 'уточнить качества кандидата')
-        #     skills = arguments.get("skills", 'уточнить навыки')
-        #     data = {"waiting_for_title_vacancy": title_of_vacancy,
-        #             "waiting_for_conditions": conditions,
-        #             "waiting_for_requirements": requirements,
-        #             "waiting_for_responsibilities": responsibilities,
-        #             "waiting_for_interview_questions": interview_questions,
-        #             "waiting_for_priority": priority,
-        #             "waiting_for_demographics": demographics,
-        #             "waiting_for_qualities": qualities,
-        #             "waiting_for_skills": skills,
-        #             "waiting_for_ideal_candidate": ideal_candidate,
-        #         }
-        #     print(data, '\n\n')
-            
-        #     check_data = any(True for i in data.values() if 'уточнить' in i.lower() or 'не указано' in i.lower())
-        #     print('!!!!!\n!!!!!!\n!!!!!!\n\n', check_data)
-        #     if check_data:
-        #         await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': json.dumps(data)}, state)
-        #         history = await get_history_by_user_id(message.from_user.id, state)
-        #         await process_commitment_global(message, history, state)
-        #     else:
-        #         await save_vacancy(data)
-        #         vacancy = await process_commitment(message, json.dumps(data))
-        #         await update_vacancy_description(title_of_vacancy, vacancy)
-        #         await message.answer(vacancy)
-        #         await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': vacancy}, state)
-        #         keyboard = ReplyKeyboardMarkup(
-        #             keyboard=[
-        #                 [
-        #                     types.KeyboardButton(text="Разместить на hh.ru"),
-        #                 ],
-        #                 [
-        #                     types.KeyboardButton(text="Переписать"),
-        #                 ],
-        #             ],
-        #             resize_keyboard=True
-        #         )
-        #         await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
+        if function_name == "aqeaintance_with_company":
+            print('\n\n!!!\n\nin aqeaintance_with_company')
+            await aqeaintance_with_company(message, state)
+        elif function_name == "choice_vacancy":
+            print('\n\n!!!\n\nin choice_vacancy')
+            await choice_vacancy(message, state)
+        elif function_name == "aqeaintance":
+            print('\n\n!!!\n\nin aqeaintance')
+            await aqeaintance(message, state)
+        elif function_name == "new_candidate":
+            print('\n\n!!!\n\nin new_candidate')
+            fio = ' '.join(arguments.values())
+            print(fio)
+            try:
+                await new_candidate(fio, str(message.from_user.id))
+            except Exception as e:
+                print(e)
+            # await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': fio}, state)
+            await message.answer('Желаете для начала ознакомиться с компанией?')
+            await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': 'Желаете для начала ознакомиться с компанией?'}, state)
     else:
         result = response.choices[0].message.content
         await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': result}, state)

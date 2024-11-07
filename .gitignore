@@ -1,5 +1,6 @@
 venv/
 .env
+alembic.ini
 test.py
 resumes.pdf
 resumes.txt

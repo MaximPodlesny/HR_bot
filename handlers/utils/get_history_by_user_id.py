@@ -1,12 +1,17 @@
 from aiogram.fsm.context import FSMContext
 
 from handlers.utils.chat_history import ChatHistory
+from collections import deque
+from bot import history
 
 async def get_history_by_user_id(user_id, state: FSMContext):
-    history = await state.get_data()
-    if "history" not in history:
-        history["history"] = {}
-        history["history"][user_id] = history["history"].get(user_id, [])  # Сохраняем user ID
-        await state.set_data(history)
-    elif user_id in history['history']:
-        return history['history'][user_id]
+    return list(history.get(user_id))
+# async def get_history_by_user_id(user_id, state: FSMContext):
+#     history = await state.get_data()
+#     if "history" not in history:
+#         history["history"] = {}
+#         history["history"][user_id] = []  # Сохраняем user ID
+#         await state.set_data(history)
+#         return history['history'][user_id]
+#     elif user_id in history['history']:
+#         return history['history'][user_id]

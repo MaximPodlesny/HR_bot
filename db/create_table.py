@@ -19,9 +19,12 @@ class Candidates(Base):
     __tablename__ = "candidates"
     id = Column(Integer, primary_key=True)
     fio = Column(String)
-    telegram_id = Column(Integer)
+    telegram_id = Column(String)
     phone_number = Column(String)
     vacancy_id = Column(Integer, ForeignKey("vacancies.id"))
+    first_interview_questions = Column(String)
+    second_interview_questions = Column(String)
+    test_task = Column(String)
 
 class Vacancies(Base):
     __tablename__ = "vacancies"
@@ -43,6 +46,12 @@ class CandidatePortrait(Base):
     demographics = Column(String)
     qualities = Column(String)
     skills = Column(String)
+
+class AdminPenal(Base):
+    __tablename__ = "admin_penal"
+    id = Column(Integer, primary_key=True)
+    admin_ids = Column(String)
+
 
 # Создание таблиц в базе данных
 

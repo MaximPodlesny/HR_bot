@@ -47,36 +47,7 @@ def get_db():
     session = Session()
     return session
 
-# 4.  Функция  для  сохранения  информации  о  кандидате  в  базу:**
-# async def save_vacancy_info(data: Dict[str, Any]):
-#     """Сохраняет информацию о кандидате в базу данных."""
-#     async with get_db() as session:
-#         # Работа с базой данных внутри контекста сессии
-#         new_vacancy = Vacancies(title=data["waiting_for_title"], conditions=data["waiting_for_conditions"], requirements=data["waiting_for_requirements"], responsibilities=data["waiting_for_responsibilities"], interview_questions=data["waiting_for_interview_questions"], priority=data["waiting_for_priority"])
-#         session.add(new_vacancy)
-#         await session.commit()
-# def save_vacancy_info(data: dict):
-#     """Сохраняет информацию о вакансии в базу данных."""
-#     session = get_db()  # Получаем сессию с базой данных
-#     # Проверяем, существует ли вакансия с таким же названием в базе
-#     # Если да, выдаем сообщение об ошибке и возвращаемся
-#     # Если нет, сохраняем новую вакансию в базу и отправляем сообщение о успешном сохранении
-#     title = data["waiting_for_title_vacancy"]
-#     existing_vacancy = session.query(Vacancies).filter_by(title=title).first()
-#     if existing_vacancy:
-#         print(f"Вакансия с названием '{title}' уже существует.")
-#         return
-#     else:
-#         new_vacancy = Vacancies(
-#             title=data["waiting_for_title_vacancy"],
-#             conditions=data["waiting_for_conditions"],
-#             requirements=data["waiting_for_requirements"],
-#             responsibilities=data["waiting_for_responsibilities"],
-#             interview_questions=data["waiting_for_interview_questions"],
-#             priority=data["waiting_for_priority"],
-#         )
-#         session.add(new_vacancy)
-#         session.commit()
+
 def save_vacancy_info(data: dict):
     """Сохраняет информацию о вакансии в базу данных."""
     session = get_db()  # Получаем сессию с базой данных
