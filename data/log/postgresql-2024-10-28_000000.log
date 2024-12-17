@@ -1,0 +1,24 @@
+2024-10-28 17:48:20.083 MSK [30452] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 17:48:44.851 MSK [14748] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 17:52:37.157 MSK [17184] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 17:54:12.400 MSK [9548] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 17:57:55.512 MSK [35012] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 18:00:32.305 MSK [9948] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 21:30:42.046 MSK [3988] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 21:30:42.046 MSK [33668] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 21:30:42.046 MSK [36284] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-28 21:30:42.047 MSK [35332] СООБЩЕНИЕ:  не удалось получить данные от клиента: An existing connection was forcibly closed by the remote host.
+	
+2024-10-29 10:59:06.811 MSK [19340] �����:  ������������ "postgres" �� ������ �������� ����������� (�� ������)
+2024-10-29 10:59:06.811 MSK [19340] �����������:  ����������� ������������� ������ 117 � "C:/Program Files/PostgreSQL/16/data/pg_hba.conf": "host    all             all             ::1/128                 scram-sha-256"
+2024-10-29 10:59:06.846 MSK [21076] �����:  ������������ "postgres" �� ������ �������� ����������� (�� ������)
+2024-10-29 10:59:06.846 MSK [21076] �����������:  ����������� ������������� ������ 117 � "C:/Program Files/PostgreSQL/16/data/pg_hba.conf": "host    all             all             ::1/128                 scram-sha-256"

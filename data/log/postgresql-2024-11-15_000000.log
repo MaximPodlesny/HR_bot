@@ -1,0 +1,156 @@
+2024-11-15 12:18:00.367 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 12:18:00.480 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.107 сек., синхр.=0.002 сек., всего=0.114 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=1 kB, ожидалось=16 kB; lsn=0/2071D70, lsn redo=0/2071D38
+2024-11-15 12:23:00.482 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 12:23:00.592 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.103 сек., синхр.=0.002 сек., всего=0.110 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=1 kB, ожидалось=15 kB; lsn=0/20722C0, lsn redo=0/2072288
+2024-11-15 12:48:00.627 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 12:48:00.738 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.105 сек., синхр.=0.002 сек., всего=0.112 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=1 kB, ожидалось=13 kB; lsn=0/2072890, lsn redo=0/2072858
+2024-11-15 12:53:00.748 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 12:53:00.861 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.106 сек., синхр.=0.002 сек., всего=0.113 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=1 kB, ожидалось=12 kB; lsn=0/2072FA0, lsn redo=0/2072F68
+2024-11-15 12:58:00.874 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 12:58:00.988 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.108 сек., синхр.=0.002 сек., всего=0.115 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=1 kB, ожидалось=11 kB; lsn=0/2073728, lsn redo=0/20736F0
+2024-11-15 13:01:30.065 MSK [38856] РћРЁРР‘РљРђ:  РѕРїРµСЂР°С‚РѕСЂ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚: character varying = bigint (СЃРёРјРІРѕР» 534)
+2024-11-15 13:01:30.065 MSK [38856] РџРћР”РЎРљРђР—РљРђ:  РћРїРµСЂР°С‚РѕСЂ СЃ РґР°РЅРЅС‹РјРё РёРјРµРЅРµРј Рё С‚РёРїР°РјРё Р°СЂРіСѓРјРµРЅС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅ. Р’РѕР·РјРѕР¶РЅРѕ, РІР°Рј СЃР»РµРґСѓРµС‚ РґРѕР±Р°РІРёС‚СЊ СЏРІРЅС‹Рµ РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїРѕРІ.
+2024-11-15 13:01:30.065 MSK [38856] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.telegram_id = 6539550554 
+	 LIMIT 1
+2024-11-15 13:04:18.060 MSK [10200] РћРЁРР‘РљРђ:  РѕРїРµСЂР°С‚РѕСЂ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚: character varying = bigint (СЃРёРјРІРѕР» 534)
+2024-11-15 13:04:18.060 MSK [10200] РџРћР”РЎРљРђР—РљРђ:  РћРїРµСЂР°С‚РѕСЂ СЃ РґР°РЅРЅС‹РјРё РёРјРµРЅРµРј Рё С‚РёРїР°РјРё Р°СЂРіСѓРјРµРЅС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅ. Р’РѕР·РјРѕР¶РЅРѕ, РІР°Рј СЃР»РµРґСѓРµС‚ РґРѕР±Р°РІРёС‚СЊ СЏРІРЅС‹Рµ РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїРѕРІ.
+2024-11-15 13:04:18.060 MSK [10200] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.telegram_id = 6539550554 
+	 LIMIT 1
+2024-11-15 13:07:57.349 MSK [3568] РћРЁРР‘РљРђ:  СЃС‚РѕР»Р±РµС† "telegram_id" РЅРµР»СЊР·СЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРёРІРµСЃС‚Рё Рє С‚РёРїСѓ integer
+2024-11-15 13:07:57.349 MSK [3568] РџРћР”РЎРљРђР—РљРђ:  Р’РѕР·РјРѕР¶РЅРѕ, РЅРµРѕР±С…РѕРґРёРјРѕ СѓРєР°Р·Р°С‚СЊ "USING telegram_id::integer".
+2024-11-15 13:07:57.349 MSK [3568] РћРџР•Р РђРўРћР :  ALTER TABLE candidates ALTER COLUMN telegram_id TYPE INTEGER 
+2024-11-15 13:08:00.990 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 13:08:01.209 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 3 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.212 сек., синхр.=0.002 сек., всего=0.219 сек.; синхронизировано_файлов=3, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=2 kB, ожидалось=10 kB; lsn=0/2073FD8, lsn redo=0/2073FA0
+2024-11-15 13:09:02.856 MSK [4876] РћРЁРР‘РљРђ:  СЃС‚РѕР»Р±РµС† "telegram_id" РЅРµР»СЊР·СЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРёРІРµСЃС‚Рё Рє С‚РёРїСѓ integer
+2024-11-15 13:09:02.856 MSK [4876] РџРћР”РЎРљРђР—РљРђ:  Р’РѕР·РјРѕР¶РЅРѕ, РЅРµРѕР±С…РѕРґРёРјРѕ СѓРєР°Р·Р°С‚СЊ "USING telegram_id::integer".
+2024-11-15 13:09:02.856 MSK [4876] РћРџР•Р РђРўРћР :  ALTER TABLE candidates ALTER COLUMN telegram_id TYPE INTEGER 
+2024-11-15 13:12:14.279 MSK [35924] РћРЁРР‘РљРђ:  СЃС‚РѕР»Р±РµС† "telegram_id" РЅРµР»СЊР·СЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРёРІРµСЃС‚Рё Рє С‚РёРїСѓ integer
+2024-11-15 13:12:14.279 MSK [35924] РџРћР”РЎРљРђР—РљРђ:  Р’РѕР·РјРѕР¶РЅРѕ, РЅРµРѕР±С…РѕРґРёРјРѕ СѓРєР°Р·Р°С‚СЊ "USING telegram_id::integer".
+2024-11-15 13:12:14.279 MSK [35924] РћРџР•Р РђРўРћР :  ALTER TABLE candidates ALTER COLUMN telegram_id TYPE INTEGER 
+2024-11-15 13:13:00.210 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 13:13:00.323 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.106 сек., синхр.=0.002 сек., всего=0.114 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=2 kB, ожидалось=9 kB; lsn=0/2074960, lsn redo=0/2074928
+2024-11-15 13:40:57.952 MSK [28388] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 13:40:57.952 MSK [28388] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 13:44:30.263 MSK [8360] РћРЁРР‘РљРђ:  INSERT РёР»Рё UPDATE РІ С‚Р°Р±Р»РёС†Рµ "candidates" РЅР°СЂСѓС€Р°РµС‚ РѕРіСЂР°РЅРёС‡РµРЅРёРµ РІРЅРµС€РЅРµРіРѕ РєР»СЋС‡Р° "candidates_vacancy_id_fkey"
+2024-11-15 13:44:30.263 MSK [8360] РџРћР”Р РћР‘РќРћРЎРўР:  РљР»СЋС‡ (vacancy_id)=(0) РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ С‚Р°Р±Р»РёС†Рµ "vacancies".
+2024-11-15 13:44:30.263 MSK [8360] РћРџР•Р РђРўРћР :  INSERT INTO candidates (fio, telegram_id, phone_number, vacancy_id, first_interview_questions, second_interview_questions, test_task, title_of_vacancy) VALUES ('РњР°РєСЃРёРј РџРѕРґР»РµСЃРЅС‹Р№ РќРёРєРѕР»Р°РµРІРёС‡', '6539550554', '', 0, '', '', '', NULL) RETURNING candidates.id
+2024-11-15 13:48:00.368 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 13:48:00.696 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.321 сек., синхр.=0.003 сек., всего=0.329 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=2 kB, ожидалось=9 kB; lsn=0/20752F0, lsn redo=0/20752B8
+2024-11-15 13:53:00.702 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 13:53:01.033 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.324 сек., синхр.=0.003 сек., всего=0.332 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=2 kB, ожидалось=8 kB; lsn=0/2075CF8, lsn redo=0/2075CC0
+2024-11-15 13:53:42.164 MSK [21320] РћРЁРР‘РљРђ:  РѕРїРµСЂР°С‚РѕСЂ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚: character varying = bigint (СЃРёРјРІРѕР» 534)
+2024-11-15 13:53:42.164 MSK [21320] РџРћР”РЎРљРђР—РљРђ:  РћРїРµСЂР°С‚РѕСЂ СЃ РґР°РЅРЅС‹РјРё РёРјРµРЅРµРј Рё С‚РёРїР°РјРё Р°СЂРіСѓРјРµРЅС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅ. Р’РѕР·РјРѕР¶РЅРѕ, РІР°Рј СЃР»РµРґСѓРµС‚ РґРѕР±Р°РІРёС‚СЊ СЏРІРЅС‹Рµ РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїРѕРІ.
+2024-11-15 13:53:42.164 MSK [21320] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.telegram_id = 6539550554 
+	 LIMIT 1
+2024-11-15 13:59:12.785 MSK [37060] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 13:59:12.785 MSK [37060] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 14:03:00.052 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:03:00.385 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.326 сек., синхр.=0.003 сек., всего=0.334 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=4 kB, ожидалось=8 kB; lsn=0/2077070, lsn redo=0/2077038
+2024-11-15 14:09:20.439 MSK [24724] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 14:09:20.439 MSK [24724] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 14:13:00.399 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:13:00.727 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.320 сек., синхр.=0.003 сек., всего=0.328 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=6 kB, ожидалось=7 kB; lsn=0/2078A78, lsn redo=0/2078A40
+2024-11-15 14:18:00.740 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:18:00.849 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.103 сек., синхр.=0.002 сек., всего=0.110 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=7 kB, ожидалось=7 kB; lsn=0/207AA58, lsn redo=0/207AA20
+2024-11-15 14:23:00.861 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:23:00.972 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.105 сек., синхр.=0.002 сек., всего=0.112 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=5 kB, ожидалось=7 kB; lsn=0/207C1C0, lsn redo=0/207C188
+2024-11-15 14:28:41.297 MSK [14864] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 14:28:41.297 MSK [14864] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 14:33:00.991 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:33:01.100 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 2 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.103 сек., синхр.=0.002 сек., всего=0.110 сек.; синхронизировано_файлов=2, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=7 kB, ожидалось=7 kB; lsn=0/207E178, lsn redo=0/207E140
+2024-11-15 14:42:49.928 MSK [32204] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 14:42:49.928 MSK [32204] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 14:43:00.107 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:43:00.434 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.319 сек., синхр.=0.003 сек., всего=0.327 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=4 kB, ожидалось=7 kB; lsn=0/207F548, lsn redo=0/207F510
+2024-11-15 14:48:00.442 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 14:48:00.769 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.320 сек., синхр.=0.003 сек., всего=0.328 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=4 kB, ожидалось=7 kB; lsn=0/2080830, lsn redo=0/20807F8
+2024-11-15 14:59:10.312 MSK [19572] РћРЁРР‘РљРђ:  РЅРµРІРµСЂРЅС‹Р№ СЃРёРЅС‚Р°РєСЃРёСЃ РґР»СЏ С‚РёРїР° integer: "" (СЃРёРјРІРѕР» 527)
+2024-11-15 14:59:10.312 MSK [19572] РћРџР•Р РђРўРћР :  SELECT candidates.id AS candidates_id, candidates.fio AS candidates_fio, candidates.telegram_id AS candidates_telegram_id, candidates.phone_number AS candidates_phone_number, candidates.vacancy_id AS candidates_vacancy_id, candidates.first_interview_questions AS candidates_first_interview_questions, candidates.second_interview_questions AS candidates_second_interview_questions, candidates.test_task AS candidates_test_task, candidates.title_of_vacancy AS candidates_title_of_vacancy 
+	FROM candidates 
+	WHERE candidates.id = '' 
+	 LIMIT 1
+2024-11-15 15:03:02.560 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 15:03:02.892 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.324 сек., синхр.=0.003 сек., всего=0.332 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=4 kB, ожидалось=7 kB; lsn=0/2081B78, lsn redo=0/2081B40
+2024-11-15 15:18:02.919 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 15:18:03.248 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.321 сек., синхр.=0.003 сек., всего=0.329 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=5 kB, ожидалось=6 kB; lsn=0/2083038, lsn redo=0/2083000
+2024-11-15 15:23:02.252 MSK [10000] СООБЩЕНИЕ:  начата контрольная точка: time
+2024-11-15 15:23:02.583 MSK [10000] СООБЩЕНИЕ:  контрольная точка завершена: записано буферов: 4 (0.0%); добавлено файлов WAL 0, удалено: 0, переработано: 0; запись=0.324 сек., синхр.=0.003 сек., всего=0.332 сек.; синхронизировано_файлов=4, самая_долгая_синхр.=0.001 сек., средняя=0.001 сек.; расстояние=5 kB, ожидалось=6 kB; lsn=0/20845E8, lsn redo=0/20845B0
+2024-11-15 22:03:47.109 MSK [11436] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [20484] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [22188] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [5148] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [38872] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [14632] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.109 MSK [28852] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.110 MSK [35604] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.110 MSK [17252] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.110 MSK [13284] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.113 MSK [11068] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.168 MSK [19572] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.171 MSK [10068] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.171 MSK [10068] РЎРћРћР‘Р©Р•РќРР•:  РЅРµРѕР¶РёРґР°РЅРЅС‹Р№ РѕР±СЂС‹РІ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ РєР»РёРµРЅС‚РѕРј РїСЂРё РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РЅР·Р°РєС†РёРё
+2024-11-15 22:03:47.171 MSK [1692] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.172 MSK [33776] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.174 MSK [7500] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.175 MSK [20132] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.175 MSK [7992] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.176 MSK [8340] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.176 MSK [33336] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.179 MSK [29060] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.179 MSK [29060] РЎРћРћР‘Р©Р•РќРР•:  РЅРµРѕР¶РёРґР°РЅРЅС‹Р№ РѕР±СЂС‹РІ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ РєР»РёРµРЅС‚РѕРј РїСЂРё РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РЅР·Р°РєС†РёРё
+2024-11-15 22:03:47.171 MSK [32340] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.184 MSK [22360] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.185 MSK [22360] РЎРћРћР‘Р©Р•РќРР•:  РЅРµРѕР¶РёРґР°РЅРЅС‹Р№ РѕР±СЂС‹РІ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ РєР»РёРµРЅС‚РѕРј РїСЂРё РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РЅР·Р°РєС†РёРё
+2024-11-15 22:03:47.185 MSK [38348] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.192 MSK [33584] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.195 MSK [15244] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.196 MSK [9012] РЎРћРћР‘Р©Р•РќРР•:  РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°РЅРЅС‹Рµ РѕС‚ РєР»РёРµРЅС‚Р°: An existing connection was forcibly closed by the remote host.
+	
+2024-11-15 22:03:47.196 MSK [9012] РЎРћРћР‘Р©Р•РќРР•:  РЅРµРѕР¶РёРґР°РЅРЅС‹Р№ РѕР±СЂС‹РІ СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ РєР»РёРµРЅС‚РѕРј РїСЂРё РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РЅР·Р°РєС†РёРё
