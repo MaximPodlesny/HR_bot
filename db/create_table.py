@@ -6,7 +6,7 @@ from config import DATABASE_URL
 
 # try:
 engine = create_engine(DATABASE_URL.replace("'", "") , echo=True)  # Echo=True для вывода SQL-запросов
-print('engine')
+
 # except:
 # print("Ошибка подключения к базе данных")
 # Session = sessionmaker(bind=engine)
@@ -21,14 +21,16 @@ class Candidates(Base):
     fio = Column(String)
     telegram_id = Column(String)
     phone_number = Column(String)
-    vacancy_id = Column(Integer, ForeignKey("vacancies.id"))
+    vacancy_id = Column(Integer, ForeignKey("vacancies.id"), unique=True)
     first_interview_questions = Column(String)
     second_interview_questions = Column(String)
     test_task = Column(String)
+    title_of_vacancy = Column(String)
 
 class Vacancies(Base):
     __tablename__ = "vacancies"
     id = Column(Integer, primary_key=True)
+    id_hh= Column(Integer)
     title = Column(String)
     description = Column(String)
     conditions = Column(String)

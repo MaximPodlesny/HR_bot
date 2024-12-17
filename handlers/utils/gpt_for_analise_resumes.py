@@ -5,6 +5,8 @@ from config import GPT_KEY
 from aiogram import types
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+
+from handlers.utils.candidate import create_candidate, get_id_candidate_by_fio
 # from dotenv import load_dotenv
 
 # load_dotenv()
@@ -56,7 +58,7 @@ async def process_commitment(message: types.Message, resume, portrait):
     print()
     print(resume)
     response = await client.chat.completions.create(
-      model="gpt-4o-mini",
+      model="gpt-4o",
       messages=[
         {
         "role": "system",
@@ -102,15 +104,18 @@ async def search_good_resumes(message: types.Message, resumes, portrait, state: 
     await state.set_state(ResumesInfoStates.waiting_for_list_contact)
     
     for name, resume in enumerate(json.loads(resumes).items()):
+        print('\n\n!!!\n\n', resume)
         result = await process_commitment(message, f'{resume[0]}: {resume[1]}', portrait)
         if result:
+            await create_candidate(resume[1], portrait)
+            id_of_candidate = await get_id_candidate_by_fio(resume[1].get('Имя'))
             try:
                 data = await state.get_data()
                 if "waiting_for_list_contact" not in data or data.get('waiting_for_list_contact') == None:
-                    data["waiting_for_list_contact"] = [(resume[1].get('Телефон', ''), resume[1].get('Телеграм', ''))]
+                    data["waiting_for_list_contact"] = [(resume[1].get('Телефон', ''), resume[1].get('Телеграм', ''), id_of_candidate)]
                     await state.set_data(data)
                 else:
-                    data['waiting_for_list_contact'].append((resume[1].get('Телефон', ''), resume[1].get('Телеграм', '')))
+                    data['waiting_for_list_contact'].append((resume[1].get('Телефон', ''), resume[1].get('Телеграм', ''), id_of_candidate))
                     await state.set_data(data)
 
                 # if data.get('waiting_for_list_contact') == None or not data.get('waiting_for_list_contact'):

@@ -10,7 +10,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
-from db.create_table import CandidatePortrait
+from db.create_table import CandidatePortrait, Candidates
 from db.create_table import Vacancies
 import psycopg2
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -20,8 +20,7 @@ from config import DATABASE_URL
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
 
 
-def create_candidate():
-    pass
+
 class CandidateInfoStates(StatesGroup):
        waiting_for_title_vacancy = State()
        waiting_for_ideal_candidate = State()
@@ -116,6 +115,35 @@ def save_candidate_info(data: dict):
     finally:
         session.close()
 
+async def create_candidate(data_resume: dict, data_candidate: dict):
+    session = get_db()
+    candidate = session.query(Candidates).filter_by(fio=data_resume.get('Имя')).first()
+    
+    try:
+        if not candidate:
+            # создаем нового кандидата
+            new_candidate = Candidates(
+                fio = data_resume.get('Имя'),
+                phone_number = data_resume.get('Телефон'),
+                title_of_vacancy = data_candidate.get('название вакансии')
+            )
+            session.add(new_candidate)
+            session.commit()
+
+            
+
+    except Exception as e:
+        session.rollback()
+        print(f"Ошибка сохранения информации о кандидате: {e}")
+
+    finally:
+        session.close()
+
+async def get_id_candidate_by_fio(fio):
+    sess = get_db()
+    candidate = sess.query(Candidates).filter_by(fio=fio).first()
+    sess.close()
+    return candidate.id
 
 # async def update_vacancy_description(title: str, description: str):
 #     async with get_db() as session:
@@ -138,6 +166,7 @@ async def update_vacancy_description(title: str, description: str):
         session.commit()
     else:
         print("Вакансия с таким названием не найдена")
+    session.close()
 
         
 async def get_vacancy_and_portrait_by_title(title: str):
@@ -167,9 +196,11 @@ async def get_vacancy_and_portrait_by_title(title: str):
                 "qualities": result[11],  # Индекс 11 для "qualities"
                 "skills": result[12],  # Индекс 12 для "skills"
             }
+            session.close()
             return json.dumps(vacancy_data)  # Преобразование в JSON
         else:
-            return None       
+            session.close()
+            return None    
 
 # def get_vacancy_and_portrait_by_title(title: str):
 #     vacancy = session.query(Vacancies).filter_by(title=title).first()

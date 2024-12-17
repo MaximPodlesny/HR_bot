@@ -7,5 +7,8 @@ from .candidate import get_db
 
 async def get_vacancy(title):
     session = get_db()
-    vacancy = session.query(Vacancies).filter_by(title=title).first()
-    return vacancy
+    try:
+        vacancy = session.query(Vacancies).filter_by(title=title).first()
+        return vacancy
+    except:
+        return None

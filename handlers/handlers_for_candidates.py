@@ -1,3 +1,5 @@
+import asyncio
+import datetime
 import json
 from aiogram import Router, types
 from aiogram import F
@@ -5,21 +7,26 @@ from aiogram.filters import StateFilter
 from aiogram.types import ReplyKeyboardMarkup
 from openai import AsyncOpenAI
 
+
+import bot
 from config import GPT_KEY, ADMIN
 from db.create_table import Vacancies
 from handlers.questionnaire import FirstInterviewInfoStates, SecondInterviewInfoStates, collect_responses_interviews_info, interview, poll_first_interview
+from handlers.states import UserchatInfoStates
 from handlers.utils.add_admin import add_admin_id
+from handlers.utils.admins import ADMINS
 from handlers.utils.chat_history import ChatHistory
 from handlers.utils.del_admin import del_admin_id
 from handlers.utils.get_history_by_user_id import get_history_by_user_id
 from handlers.utils.get_all_vacansies import get_vacancies
 from handlers.utils.get_vacancy_by_title import get_vacancy
 from handlers.utils.gpt_for_analise_resumes import ResumesInfoStates, search_good_resumes
+from handlers.utils_for_candidate.gpt_for_hi import process_hi
 from handlers.utils_for_candidate.gpt_for_interview import process_interview
 from handlers.utils.record_history_by_user_id import record_history_by_user_id
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
 from handlers.utils.parser_pdf import parser
-from handlers.utils_for_candidate.update_candidate import new_candidate
+from handlers.utils_for_candidate.update_candidate import new_candidate, time_for_test_task_by_candidate_id, update_time_test_task_by_candidate_id
 # from aiogram.dispatcher.filters import ContentTypesFilter
 # from bot import bot
 from .search_candidate import search_c
@@ -31,16 +38,32 @@ from aiogram.fsm.state import State, StatesGroup
 
 router = Router()
 
-class DocumentInfoStates(StatesGroup):
-       waiting_for_id_document = State()
-       waiting_for_name_document = State()
-       waiting_for_data_of_resumes = State()
+# class DocumentInfoStates(StatesGroup):
+#        waiting_for_id_document = State()
+#        waiting_for_name_document = State()
+#        waiting_for_data_of_resumes = State()
 
-class UserchatInfoStates(StatesGroup):
-       name_of_user = State()
-       chosen_vacancy = State()
-       list_vacancies = State()
-       waiting_for_questions = State()
+# class UserchatInfoStates(StatesGroup):
+#        admin_ids = State()
+#        name_of_user = State()
+#        chosen_vacancy = State()
+#        list_vacancies = State()
+#        waiting_for_questions = State()
+
+# Обработчик ответа Cancel
+@router.message((F.text == "Отмена") & (~F.from_user.id.in_(ADMINS)))
+async def process_hh(message: types.Message, state: FSMContext):
+    await state.clear()
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                # types.KeyboardButton(text="Найти кандидата"),
+                types.KeyboardButton(text="Выбрать вакансию"),
+            ],
+        ],
+        resize_keyboard=True
+    )
+    await message.answer("Хорошо! Что будем делать дальше?", reply_markup=keyboard)
 
 # установка id для админки
 @router.message((F.text == "admin @"))
@@ -51,9 +74,9 @@ async def process_add_admin(message: types.Message, state: FSMContext):
 async def process_del_admin(message: types.Message, state: FSMContext):
     await del_admin_id(message.from_user.id)
 
-@router.message(FirstInterviewInfoStates())
-async def process_poll(message: types.Message, state: FSMContext):
-    answer = await collect_responses_interviews_info(message, state)
+# @router.message(FirstInterviewInfoStates())
+# async def process_poll(message: types.Message, state: FSMContext):
+#     answer = await collect_responses_interviews_info(message, state)
 
 @router.message(SecondInterviewInfoStates())
 async def process_poll(message: types.Message, state: FSMContext):
@@ -78,26 +101,13 @@ async def process_poll(message: types.Message, state: FSMContext):
     # resp = await process_commitment_global(message, history, state)
     await process_ai(message, state)
 
-# Обработчик ответа Cancel
-@router.message((F.text == "Отмена") & (F.from_user.id != ADMIN))
-async def process_hh(message: types.Message, state: FSMContext):
-    await state.clear()
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                # types.KeyboardButton(text="Найти кандидата"),
-                types.KeyboardButton(text="Выбрать вакансию"),
-            ],
-        ],
-        resize_keyboard=True
-    )
-    await message.answer("Хорошо! Что будем делать дальше?", reply_markup=keyboard)
+
 
 
     
 
 # Выбор вакансии
-@router.message((F.text == "Выбрать вакансию") & (F.from_user.id != ADMIN))
+@router.message((F.text == "Выбрать вакансию") & (~F.from_user.id.in_(ADMINS)))
 async def choice_vacancy(message: types.Message, state: FSMContext):
     all_vacancies = await get_vacancies()
     # Формируем опрос
@@ -129,6 +139,20 @@ async def choice_vacancy(message: types.Message, state: FSMContext):
     await message.reply("Выберите вакансию:", reply_markup=keyboard)
     # Отправляем опрос
     # await message.reply_poll(poll)
+
+# Пройти тестовое задание
+@router.message((F.text == "Получить тестовое задание") & (~F.from_user.id.in_(ADMINS)))
+async def give_test_task(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    if data['waiting_for_vacancy_test'].get('url_to_task'):
+        test_task = data['waiting_for_vacancy_test']['url_to_task']
+        time_to_complete = data['waiting_for_vacancy_test']['time_to_complete']
+
+    current_date = datetime.now()
+    await update_time_test_task_by_candidate_id(message.from_user.id, current_date)
+    await message.answer(f"Ваше задание здесь:\n{test_task}\nВремя на выполнение {''.join(i for i in time_to_complete if i.isdigit())} дня!")
+    await message.answer(f"Как завершите задание, напишитн мне: 'Тестовое задание выполнено'")
+
 
 # Обработчик ответа на опрос
 # @router.poll_answer()
@@ -173,7 +197,9 @@ async def answer_poll(message: types.Message, state: FSMContext):
     # Запоминаем выбранную вакансию в контексте пользователя
     await state.update_data(chosen_vacancy=chosen_vacancy)
     # Переходим в следующее состояние (например, для обработки дальнейших действий)
-    await state.set_state(UserchatInfoStates)
+    await state.set_state(UserchatInfoStates())
+    data = await state.get_data()
+    print('\n\n!!!!\n\n', data, await state.get_state())
     await message.answer(f"Вы выбрали вакансию: {chosen_vacancy}.\n\nПройдите электронное собеседование:")
     await interview(message, state)
     # Отправляем сообщение с выбранной вакансией
@@ -345,12 +371,13 @@ async def answer_poll(message: types.Message, state: FSMContext):
 
 
 async def aqeaintance_with_company(message: types.Message, state: FSMContext):
-    await message.answer("Презентация?")
+    await message.answer("Позвольте я сначала расскажу вам о нашей компании. тут ссылка.")
     await answer_questions(message, state)
 
 async def answer_questions(message: types.Message, state: FSMContext):
     # await state.set_state(UserchatInfoStates.waiting_for_questions)
     await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': "Не против ли вы ответить на ряд вопросов для дальнейшего отбора?"}, state)
+    await asyncio.sleep(3)
     await message.answer("Не против ли вы ответить на ряд вопросов для дальнейшего отбора?")
 
 async def aqeaintance(message: types.Message, state: FSMContext):
@@ -364,10 +391,10 @@ async def aqeaintance(message: types.Message, state: FSMContext):
     "Пройти собеседование",
     "Выбрать вакансию",
     "Отмена"
-])) & (F.from_user.id != ADMIN))
+])) & (~F.from_user.id.in_(ADMINS)))
 async def process_ai(message: types.Message, state: FSMContext):
-    await state.set_state(ChatHistory)
-    if message.text != '/start':
+    # await state.set_state(ChatHistory)
+    if '/start' not in message.text:
         await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': message.text}, state)
     history = await get_history_by_user_id(message.from_user.id, state)
     # await message.answer(, reply_markup=types.ReplyKeyboardRemove())
@@ -377,18 +404,18 @@ async def process_ai(message: types.Message, state: FSMContext):
         await message.answer(resp)
     # asyncio.run(process_commitment(message))
 
-        keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    types.KeyboardButton(text="Выбрать вакансию"),
-                ],
-                # [
-                #     types.KeyboardButton(text="К созданию вакансии")
-                # ]
-            ],
-            resize_keyboard=True
-        )
-        await message.answer("Что делать дальше?", reply_markup=keyboard)
+        # keyboard = ReplyKeyboardMarkup(
+        #     keyboard=[
+        #         [
+        #             types.KeyboardButton(text="Выбрать вакансию"),
+        #         ],
+        #         # [
+        #         #     types.KeyboardButton(text="К созданию вакансии")
+        #         # ]
+        #     ],
+        #     resize_keyboard=True
+        # )
+        # await message.answer("Что делать дальше?", reply_markup=keyboard)
 
 
 
@@ -404,46 +431,96 @@ async def process_ai(message: types.Message, state: FSMContext):
 
 client = AsyncOpenAI(api_key=GPT_KEY)
 async def process_commitment_global(message: types.Message, history, state: FSMContext):
+    print(f'\n\n!!!\n\nin process_commitment_global condidate side\n\n')
     
 
-    prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание. Ты помнишь всю переписку.\
-              **Твои  основные  задачи:**\
-              *   **Если не известно ФИО пользователя:** узнать фамилию, имя и отчество или вызови функцию 'aqeaintance()'\
-              *   **Если пользователь написал свои фамилию, имя и отчество:** если данных не хватает, то уточнить их, если данные в полном объеме - вызвать функцию 'new_candidate()'\
-              *   **Предлагать ознакомиться с компанией:** пример: 'Давайте для начала расскажу вам о нашей компании?'\
-              *   **Если пользователь согласен ознакомиться с компанией:** вызвать функцию 'aqeaintance_with_company()'\
-              *   **Предлагать ответить на вопросы по вакансии:** пример: Не против ли вы ответить на ряд вопросов для дальнейшего отбора?\
-              *   **Если пользователь готов ответить на вопросы:** вызвать функцию 'choice_vacancy()'\
-              *   **Для достижения результата:** используй следу.щие финкции:'choice_vacancy()' - выдает список имеющихся вакансий для выбора и запускает процесс опроса, 'aqeaintance_with_company()' - отправляет презентацию, 'new_candidate()' - создает нового кандидата в базе данных и предлагает ознакомиться с компанией.\
-                **Дополнительные  инструкции:**\
-              *   Будь  вежлив  и  дружелюбен  в  общении  с  пользователями.\
-              *   Предоставляй  четкие  и  понятные  инструкции ничего не придумывае, если не просят.\
-              *   Используй  форматирование  текста  для  лучшего  визуального  представления  информации."
-# 
+#     prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание. Ты помнишь всю переписку.\
+# \
+# **Твои  основные  задачи:**\
+# \
+# *   **Знакомишься с кандидатом:** уточняешь полностью фамилию, имя и отчество.\
+# *   **Обрабатываешь ввод полного имени:** \
+#     *  Если пользователь написал свои фамилию, имя и отчество:\
+#         *   Вызываешь функцию `new_candidate()`, которая создает нового кандидата в базе данных и предлагает ознакомиться с компанией. \
+#     *  Если данных не хватает, то уточняешь их. \
+# *   **Предлагаешь ознакомиться с компанией:** \
+#     *   Пример: 'Давайте для начала расскажу вам о нашей компании?'\
+#     *   Если пользователь согласен ознакомиться с компанией: \
+#         *   Вызываешь функцию `aqeaintance_with_company()`. \
+# *   **Предлагаешь ответить на вопросы по вакансии:** \
+#     *   Пример: 'Не против ли вы ответить на ряд вопросов для дальнейшего отбора?' \
+#     *   Если пользователь готов ответить на вопросы: \
+#         *   Вызываешь функцию `choice_vacancy()`. \
+# \
+# **Для достижения результата:** используй следующие функции:\
+# \
+# *   `choice_vacancy()`: выдает список имеющихся вакансий для выбора и запускает процесс опроса.\
+# *   `aqeaintance_with_company()`: отправляет презентацию.\
+# *   `new_candidate()`: создает нового кандидата в базе данных и предлагает ознакомиться с компанией.\
+# \
+# **Дополнительные  инструкции:**\
+# \
+# *   Будь  вежлив  и  дружелюбен  в  общении  с  пользователями.\
+# *   Предоставляй  четкие  и  понятные  инструкции.\
+# *   Используй  форматирование  текста  для  лучшего  визуального  представления  информации."
+    prompt = "You're a smart and friendly HR bot that helps users find jobs, send resumes, get interviews, and test jobs. You remember 50 last messages of correspondence.\
+              **Your main tasks:**\
+              ** Greet the user by name **\
+              * **If the user agrees to learn about the company or has written go in the context of agreeing to learn about the company:** If the user agrees to learn about the company(or has written go), call 'aqeaintance_with_company()'\
+              * **If the user has written his/her surname, first name and patronymic in full:** check if the surname, first name and patronymic are present, if something is missing, then clarify it, if the data is complete - call the 'new_candidate()' function.\
+              **If the user is ready to answer questions:** call the 'interview()'\
+              * **If the user asks to select a position for interview:** call 'choice_vacancy()'\
+              **If the user has written that he/she has completed a test job:** If there is no link to the completed test job, ask the user to send a link to the completed test job and after receiving the link, call 'check_time_for_complete_test()'\
+              * **To achieve the result:** use the following functions: 'choice_vacancy()' - gives a list of available jobs to choose from and starts the survey process, 'aqeaintance_with_company()' - sends the pre-selected job link, 'aqeaintance_with_company()' - sends a link to the completed job link, 'aqeaintance_with_company()' - sends a link to the completed job link.\
+                **write only in Russian**"
+    
+    # prompt = "Ты  -  умный  и  дружелюбный  HR-бот,  который  помогает  пользователям  найти  вакансии,  отправить  резюме,  пройти  собеседование  и  получить  тестовое  задание. Ты помнишь 50 последних сообщений переписки.\
+    #           **Твои  основные  задачи:**\
+    #           *   **Приветствуй пользователя по имени**\
+    #           *   **Если пользователь согласен узнать о компании или написал поехали в контексте согласия узнать о компании:** если пользователь согласен ознакомиться с компанией(или написал поехали или Поехали), необходимо вызвать функцию 'aqeaintance_with_company()'\
+    #           *   **Если пользователь написал свои фамилию, имя и отчество полностью:** проверяешь есть ли фамилия, имя и отчество, если чего-то нет, то уточняешь, если данные в полном объеме - вызвать функцию 'new_candidate()'\
+    #           *   **Если пользователь готов ответить на вопросы:** вызвать функцию 'interview()'\
+    #           *   **Если пользователь просит выбрать вакансию для интервью:** вызвать функцию 'choice_vacancy()'\
+    #           *   **Если пользователь написал, что тестовое задание выполнил:** если нет ссылки на выполненное тестовое залание, попроси отправить ссылку на выполненное тестовое задание и после получения ссылки вызови функцию 'check_time_for_complete_test()'\
+    #           *   **Для достижения результата:** используй следу.щие финкции:'choice_vacancy()' - выдает список имеющихся вакансий для выбора и запускает процесс опроса, 'aqeaintance_with_company()' - отправляет презентацию, 'new_candidate()' - создает нового кандидата в базе данных и предлагает ознакомиться с компанией.\
+    #             **Дополнительные  инструкции:**\
+    #           *   Будь  вежлив  и  дружелюбен  в  общении  с  пользователями.\
+    #           *   Предоставляй  четкие  и  понятные  инструкции ничего не придумывай, если не просят.\
+    #           *   Используй  форматирование  текста  для  лучшего  визуального  представления  информации."
+                #                 *   **Если пользователь написал имя:** проверяешь есть ли фамилия, имя и отчество, если чего-то нет, то уточняешь\                    *   **Предлагать ответить на вопросы по вакансии:** пример: Не против ли вы ответить на ряд вопросов для дальнейшего отбора?\       *   **Предлагать ознакомиться с компанией:** пример: 'Давайте для начала расскажу вам о нашей компании?'\  *   **Если не известно ФИО пользователя:** узнать фамилию, имя и отчество или вызови функцию 'aqeaintance()'\         *   **Если пользователь указал полные ФИО:** уточнить что будет дальше в формате: 'Формат собеседования будет следующий: 1. расскажу вам о компании, 2. попрошу вас ответить на важные вопросы, 3. Отправлю тестовое задание, если оно есть, 4. мы пообщаемся и я смогу ответить на ваши вопросы о вакансии, Если все понятно, напиши - поехали'\
  
     tools = [
         {"type": "function",
          "function": {
                 "name": "aqeaintance_with_company",
                 "description": "Отправляет информацию о компании.",
-                # "parameters": {
-                #     "type": "object",
-                # },
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                },
             },
         },
         {"type": "function",
          "function": {
                 "name": "choice_vacancy",
                 "description": "Выбор вакансии из списка и опрос кандидата.",
-                # "parameters": {
-                #     "type": "object",
-                #     },
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
                 },
+            },
         },
         {"type": "function",
          "function": {
-                "name": "aqeaintance",
-                "description": "Знакомство с кандидатом.",
+                "name": "interview",
+                "description": "Производит интервью кандидата.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title_of_vacancy": {"type": "string"}
+                    },
+                    "required": ["title_of_vacancy"]
+                },
             },
         },
         {"type": "function",
@@ -456,8 +533,23 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                         "sirname_candidate": {"type": "string"},
                         "first_name_candidate": {"type": "string"},
                         "patronymic_candidate": {"type": "string"},
+                        "candidate_id": {"type": "string"},
+                        "title_of_vacancy": {"type": "string"},
                     },
-                    "required": ["sirname_candidate", "first_name_candidate", "patronymic_candidate"],
+                    "required": ["sirname_candidate", "first_name_candidate", "patronymic_candidate", "candidate_id"],
+                },
+            },
+        },
+        {"type": "function",
+         "function": {
+                "name": "check_time_for_complete_test",
+                "description": "Проверяет уложился ли кандидат в сроки выполнения задания. Параметр url_to_test_task - url на тестовое задание",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url_to_test_task": {"type": "string"},
+                        },
+                    "required": ["url_to_test_task"],
                 },
             },
         },
@@ -495,20 +587,62 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
         elif function_name == "choice_vacancy":
             print('\n\n!!!\n\nin choice_vacancy')
             await choice_vacancy(message, state)
+        elif function_name == "interview":
+            print('\n\n!!!\n\nin interview')
+            try:
+                await interview(message, state, title=arguments.get("title_of_vacancy"))
+            except ValueError:
+                await choice_vacancy(message, state)
+        elif function_name == "check_time_for_complete_test":
+            print('\n\n!!!\n\nin check_time_for_complete_test')
+            current_date = datetime.now()
+            time_for_test = await update_time_test_task_by_candidate_id(message.from_user.id, end_time=current_date)
+            difference = current_date - time_for_test['start_date']
+            all_time = await time_for_test_task_by_candidate_id(message.from_user.id)
+            if difference.days > all_time:
+                await message.answer('Вы превысили время выполнения тестового задания.')
+            else:
+                await message.answer('Мы проверим тестовое задание и свяжемся с Вами.')
+                await bot.send_message(chat_id=ADMINS[0], text=f'Ссылка на тестовое задание: {arguments.get("url_to_test_task")}')
+
         elif function_name == "aqeaintance":
             print('\n\n!!!\n\nin aqeaintance')
             await aqeaintance(message, state)
         elif function_name == "new_candidate":
             print('\n\n!!!\n\nin new_candidate')
-            fio = ' '.join(arguments.values())
+            fio = f"{arguments.get('first_name_candidate')} {arguments.get('sirname_candidate')} {arguments.get('patronymic_candidate')}"
             print(fio)
+            cand_id = ''
             try:
-                await new_candidate(fio, str(message.from_user.id))
+                await state.clear()
+                cand_id = int(arguments.get('candidate_id'))
+                title_of_vacancy = arguments.get('title_of_vacancy')
+                # await state.set_state(UserchatInfoStates.chosen_vacancy)
+                await state.update_data(chosen_vacancy=title_of_vacancy)
+                # data['chosen_vacancy'] = title_of_vacancy
+                # await state.set_data(data)
+
+            except:
+                print('id of candidate is not founded')
+            try:
+                await new_candidate(cand_id, fio, str(message.from_user.id), title_of_vacancy)
             except Exception as e:
                 print(e)
-            # await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': fio}, state)
-            await message.answer('Желаете для начала ознакомиться с компанией?')
-            await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': 'Желаете для начала ознакомиться с компанией?'}, state)
+            hi = await process_hi(message, history)
+            if hi.lower().strip() == 'да' or hi.lower().strip() == 'да.':
+                pass
+                # await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': fio}, state)
+                # await message.answer('Формат собеседования будет следующий:\n1. расскажу вам о компании\n2. попрошу вас ответить на важные вопросы\n3. Отправлю тестовое задание, если оно есть\n4. мы пообщаемся и я смогу ответить на ваши вопросы о вакансии\n\nЕсли все понятно, напиши - поехали')
+                # await message.answer('Желаете для начала ознакомиться с компанией?')
+                # await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': 'Формат собеседования будет следующий: 1. расскажу вам о компании 2. попрошу вас ответить на важные вопросы\n3. Отправлю тестовое задание, если оно есть\n4. мы пообщаемся и я смогу ответить на ваши вопросы о вакансии\n\nЕсли все понятно, напиши - поехали'}, state)
+            else:
+                await message.answer(hi)
+                # await message.answer('Желаете для начала ознакомиться с компанией?')
+                await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': hi}, state)
+                # await message.answer(hi)
+                await message.answer('Формат собеседования будет следующий:\n1. расскажу вам о компании\n2. попрошу вас ответить на важные вопросы\n3. Отправлю тестовое задание, если оно есть\n4. мы пообщаемся и я смогу ответить на ваши вопросы о вакансии\n\nЕсли все понятно, напиши - поехали')
+                await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': 'Формат собеседования будет следующий: 1. расскажу вам о компании 2. попрошу вас ответить на важные вопросы\n3. Отправлю тестовое задание, если оно есть\n4. мы пообщаемся и я смогу ответить на ваши вопросы о вакансии\n\nЕсли все понятно, напиши - поехали'}, state)
+
     else:
         result = response.choices[0].message.content
         await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': result}, state)
