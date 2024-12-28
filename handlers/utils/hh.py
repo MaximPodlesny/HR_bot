@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import subprocess
+import aiohttp
 from bs4 import BeautifulSoup
 import psutil
 from requests_oauthlib import OAuth2Session
@@ -10,7 +11,10 @@ from time import sleep
 from fake_useragent import UserAgent
 from config import message_for_hh
 from handlers.utils.candidate import create_candidate, get_id_candidate_by_fio
+from handlers.utils.gpt_for_analise_resumes_for_hh import process_commitment_for_hh
 from handlers.utils.ids_from_db import get_ids_vacancies
+from handlers.utils.gpt_for_data_of_request_to_hh import get_req_to_gpt_for_hh
+from handlers.utils.send_invite_by_whatsapp import send_mes_whatsapp
 
 sess = requests.Session()
 # sess.verify = False
@@ -125,6 +129,134 @@ def ask_to_server(sess, code):
     with open('token.txt', 'w', encoding='utf-8') as f:
         print(resp.json(), file=f)
     print(resp.json())
+
+async def get_resumes(title, description_of_vacancy):
+    url = 'https://api.hh.ru/resumes'
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json', 'User-Agent': UserAgent().chrome}
+    data = await get_req_to_gpt_for_hh(description_of_vacancy)
+    try:
+        async with aiohttp.ClientSession() as session:
+            print('\n\n in get_resumes \n\n')
+            all_url_of_resumes = []
+            async def fetch_page(page):
+                """Асинхронная функция для получения данных с одной страницы."""
+                data['page'] = page
+                print(page)
+                async with session.get(url, headers=headers, params=json.dumps(data)) as response:
+                    if response.status == 200:
+                        resumes_data = await response.json()
+                        await asyncio.sleep(0.2)
+                        items = resumes_data['items']
+                        for item in items:
+                            all_url_of_resumes.append(item.get('url'))
+                        if page == 0:
+                            return resumes_data['pages']
+                    else:
+                        print(f"Ошибка получения резюме на странице {page}: {response.status}")
+
+            async def get_all_info_of_resume(url):
+                print(f'\n\n in get_all_info_of_resume\n\n{url}')
+                # url = f'https://api.hh.ru/resumes/{resume_id}'
+                headers = {'Authorization': F'Bearer {token}', 'Content-Type': 'application/json', 'User-Agent': UserAgent().chrome}
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        responses_data = await response.json()
+                        await asyncio.sleep(2)
+                        data_of_resume =  {
+                                'Имя': f"{responses_data['first_name']} {responses_data['middle_name']} {responses_data['last_name']}",
+                                'Телефон': responses_data['contact'][0]['value']['formatted'] if responses_data['contact'] else '',
+                                'Возраст': responses_data['age'],
+                                'Опыт': responses_data['experience'],
+                                'Пол': responses_data['gender'],
+                                'Знание языков': responses_data['language'],
+                                'На роль': responses_data['professional_roles'],
+                                'Навыки': responses_data['skills'],
+                                'Название резюме': responses_data['title'],
+                                'Опыт работы': responses_data['total_experience'],
+                                'driver_license_types': responses_data['driver_license_types'],
+                                'skill_set': responses_data['skill_set'],
+                                'url': responses_data['alternate_url'],
+                            }
+                        print(f"title: {responses_data['title']}")
+                        await asyncio.sleep(0.2)
+                        resp = await process_commitment_for_hh(data_of_resume, description_of_vacancy)
+                        if resp:
+                            await create_candidate(data_of_resume, {'название вакансии': title})
+                            id_of_candidate = await get_id_candidate_by_fio(data_of_resume.get('Имя'))
+                            try:
+                                contact = (data_of_resume.get('Телефон', ''), '', id_of_candidate)
+                                print(f'contact: {contact}')
+                                # if contact[0]:
+                                #     print(f'Отправил сообщение на номер +{contact}')
+                                #     await send_mes_whatsapp([contact], title, message_for_wa_by_hh=True)
+                            except Exception as e:
+                                raise ValueError(f'Ошибка при отправки сообщения: {e}')
+                        
+
+                                    
+
+                        # raise ValueError('Бот был перезапущен из-за истечения срока действия токена hh.ru. Теперь должно быть все хорошо.')
+                    elif response.status == 429:
+                        raise OverflowError('Для работодателя превышен лимит просмотров резюме в сутки')
+                    else:
+                        print(f"Ошибка получения инфы о резюме: {response.status}")
+                        return None
+            # Получаем первую страницу
+            pages = await fetch_page(0)
+
+            # Получаем остальные страницы, если они есть
+            if pages > 1:
+                tasks = [fetch_page(i) for i in range(1, pages)]
+                await asyncio.gather(*tasks)
+            try:
+                # for url in all_url_of_resumes:
+                #     await get_all_info_of_resume(url)
+                tasks2 = [get_all_info_of_resume(url) for url in all_url_of_resumes]
+                completed_tasks = await asyncio.gather(*tasks2)
+
+                # candidates_to_process = [task for task in completed_tasks if task is not None]
+                # for data_of_resume in candidates_to_process:
+                    
+
+            except ValueError as e:
+                raise ValueError(str(e))
+            except OverflowError as e:
+                print(f"Ошибка получения информации о резюме {e}")
+            except Exception as e:
+                print(f"Ошибка получения информации о резюме {e}")
+
+                
+        # response = sess.get(url, headers=headers, params=json.dumps(data))
+        # print('\n\n in get_resumes\n\n')
+        # if response.status_code == 200:
+        #     resumes_data = response.json()
+        #     all_url_of_resumes = []
+        #     items = resumes_data['items']
+        #     for item in items:
+        #         all_url_of_resumes.append(item['url'])
+        #     if resumes_data['pages'] > 1:
+        #         for i in range(1, resumes_data['pages']):
+        #             data['page'] = i
+        #             try:
+        #                 response = sess.get(url, headers=headers, data=data)
+        #                 if response.status_code == 200:
+        #                     resumes_data = response.json()
+        #                     items = resumes_data['items']
+        #                     for item in items:
+        #                         all_url_of_resumes.append(item['url'])
+        #             except:
+        #                 pass
+        #     print(all_url_of_resumes)
+        # else:
+        #     print(f"Ошибка получения вакансий: {response.status_code}")
+        #     return []
+    except ValueError as e:
+        raise ValueError(str(e))
+    except OverflowError as e:
+        raise OverflowError(str(e))
+    except Exception as e:
+        print(f"Ошибка получения информации о резюме {e}")
+        
 
 def get_areas(sity):
     resp = sess.get('https://api.hh.ru/areas', headers={'User-Agent': UserAgent().chrome})
@@ -290,6 +422,8 @@ async def get_info_of_resume(resume_id):
     else:
         print(f"Ошибка получения инфы о резюме: {response.status_code}")
         return []
+
+
 # Асинхронная функция для сбора откликов
 async def collect_responses():
     print('\n\n!!!!\n\n  in collect_responses\n\n')
@@ -312,7 +446,7 @@ async def collect_responses():
                         data_resume = {
                             'Имя': f"{response['resume']['first_name']} {response['resume']['middle_name']} {response['resume']['last_name']}",
                             'Телефон': '',
-                        }
+                        } 
                     data_candidate = {'название вакансии': vacancy['name']}
                     await create_candidate(data_resume, data_candidate)
                     id_candidate = await get_id_candidate_by_fio(data_resume.get('Имя'))

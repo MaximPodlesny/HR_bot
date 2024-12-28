@@ -9,7 +9,7 @@ from openai import AsyncOpenAI
 
 from config import GPT_KEY, ADMIN
 from db.create_table import Vacancies
-from handlers.states import DocumentInfoStates
+from handlers.states import CreateVacancyInfoStates, DocumentInfoStates
 from handlers.utils.add_admin import add_admin_id
 from handlers.utils.admins import ADMINS
 from handlers.utils.chat_history import ChatHistory
@@ -21,7 +21,7 @@ from handlers.utils.get_vacancy_by_title import get_vacancy
 from handlers.utils.gpt_for_analise_resumes import ResumesInfoStates, search_good_resumes
 from handlers.utils.gpt_for_salery_and import get_info_from_vacancy
 from handlers.utils.gpt_prof_role import process_get_professional_roles
-from handlers.utils.hh import collect_responses, creat_vacancy, get_areas, get_vacancies_from_hh
+from handlers.utils.hh import collect_responses, creat_vacancy, get_areas, get_resumes, get_vacancies_from_hh
 from handlers.utils.record_history_by_user_id import record_history_by_user_id
 from handlers.utils.gpt_for_generate_vacancy import process_commitment
 from handlers.utils.parser_pdf import parser
@@ -65,6 +65,15 @@ async def process_hh(message: types.Message):
         resize_keyboard=True
     )
     await message.answer("Хорошо! Выберите, что будем делать дальше:", reply_markup=keyboard)
+
+@router.message(CreateVacancyInfoStates.create_vacancy)
+async def create_v(message: types.Message, state: FSMContext):
+    await state.clear()
+    print('\n\n!!\n\n in create vacancy')
+    if (message.text).lower() == "да":
+        await create_vacancy_func(*data_for_creation)
+    else:
+        await message.answer("Вы отменили создание вакансии на hh.ru")
 
 # Если есть портрет кандидата
 @router.message((F.text == "Нет портрета") & (F.from_user.id.in_(ADMINS)))
@@ -319,13 +328,13 @@ async def handle_file(message: types.Message, state: FSMContext):
 #     )
 
 # Переписать текст вакансии
-@router.message((F.text.in_(["Переписать"])) & (F.from_user.id.in_(ADMINS)))
-async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
-    await message.answer('Хорошо! Давайте перепишем...')
-    await state.set_state(ChatHistory) 
-    history = await get_history_by_user_id(message.from_user.id, state)
-    new_request = history + [{'role': 'user', 'content': 'Мне не понравился результат. Уточни, что добавить или убрать, собери всю необходимую для написания вакансии информацию и сгенерируй новый текст вакансии.'}]
-    resp = await process_commitment_global(message, new_request, state)
+# @router.message((F.text.in_(["Переписать"])) & (F.from_user.id.in_(ADMINS)))
+# async def regenerate_text_of_vacancy(message: types.Message, state: FSMContext):
+#     await message.answer('Хорошо! Давайте перепишем...')
+#     await state.set_state(ChatHistory) 
+#     history = await get_history_by_user_id(message.from_user.id, state)
+#     new_request = history + [{'role': 'user', 'content': 'Мне не понравился результат. Уточни, что добавить или убрать, собери всю необходимую для написания вакансии информацию и сгенерируй новый текст вакансии.'}]
+#     resp = await process_commitment_global(message, new_request, state)
     # keyboard = ReplyKeyboardMarkup(
     #             keyboard=[
     #                 [
@@ -347,7 +356,7 @@ async def process_ai(message: types.Message, state: FSMContext, data=None, flag=
     await state.set_state(ChatHistory) 
     # await message.answer(, reply_markup=types.ReplyKeyboardRemove())
     if data:
-        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'ты получил файл с именем {data['name_document']} и id {data['id_document']}. Переспроси у меня, что делать с файлом(пиши только название файла), возможно это файл с тестовым заданием или с резюме кандидатов.'}, state)
+        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f"ты получил файл с именем {data['name_document']} и id {data['id_document']}. Переспроси у меня, что делать с файлом(пиши только название файла), возможно это файл с тестовым заданием или с резюме кандидатов."}, state)
         history = await get_history_by_user_id(message.from_user.id, state)
         print(history)
         resp = await process_commitment_global(message, history, state)
@@ -420,6 +429,53 @@ async def look_for_candidate_by_db(message: types.Message, state: FSMContext, ar
             print(f'{v[0]}: {v[1]}', file=f)
     await search_vacancies(message, state, data)
 
+def clean_vacancy_txt(vacancy):
+    flag = True
+    vacancy_txt = ''
+    for i in vacancy:
+        if i == '<':
+            flag = False
+            continue
+        elif i == '>':
+            flag = True
+            continue
+        if flag:
+            vacancy_txt += i
+    return vacancy_txt
+
+async def create_vacancy_func(message: types.Message, state: FSMContext, title_of_vacancy, description, sity_id, role, info_from_vacancy):
+    try:
+        # post = ''
+        post = await creat_vacancy(message, state, title_of_vacancy, description,
+                                area=sity_id,
+                                professional_roles=[role],
+                                employment= info_from_vacancy['employment'] if 'employment' in info_from_vacancy else None,
+                                salary=info_from_vacancy['salary'] if 'salary' in info_from_vacancy else None,
+                                experience=info_from_vacancy['experience'] if 'experience' in info_from_vacancy else None)
+        if post.status_code == 201:
+            id_hh = post.json()['id']
+            print(f"Вакансия успешно создана: {id_hh}")
+            await update_id_hh_by_title(title_of_vacancy, id_hh)
+            await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что вакансия {title_of_vacancy} создана.'}, state)
+            # history = await get_history_by_user_id(message.from_user.id, state)
+            resp = await process_ai(message, state, flag=True)
+            # asyncio.create_task(collect_responses())
+            # await collect_responses()
+            return
+        else:
+            if ((json.loads(post.text)).get('errors')[0]).get('value') == 'duplicate':
+                return
+            print(f"Ошибка создания вакансии: {post.text}\n code: {post.status_code}")
+            raise ValueError(f"Ошибка создания вакансии: {post.text} code: {post.status_code}")
+    except ValueError as e:
+        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что получили ответ от hh.ru: {e}'}, state)
+        # history = await get_history_by_user_id(message.from_user.id, state)
+        resp = await process_ai(message, state, flag=True)
+    except Exception as e:
+        print(f"Ошибка создания вакансии. In Exception")
+        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что получили ответ от hh.ru: {e}'}, state)
+        # history = await get_history_by_user_id(message.from_user.id, state)
+        resp = await process_ai(message, state, flag=True)
 client = AsyncOpenAI(api_key=GPT_KEY)
 async def process_commitment_global(message: types.Message, history, state: FSMContext):
     
@@ -434,7 +490,9 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
 обязанности: перечислено что будет делать кандидат на работе, хотя бы 2 задачи указано\
 вопросы на интервью: 5 вопросов\
 на что приоритетнее отталкиваться при финальном выборе: указано хотя что-то одно):** 1-2 пункта из списка не придумывай, а напиши подсказку, какую информацию предоставить.\
-              *   **Если ты получаешь всю информацию о вакансии:** прописаны все пункты о вакансии в полном объеме, для этого проверяй всю переписку, спроси есть ли что еще добавить или поменять, а затем необходимо вызвать функцию 'save_vacancy()'\
+              *   **Если нужно показать описание конкретной вакансии из базы:**  вызвать функцию: 'get_vacancy_from_db_by_title()' - находит вакансию в базе по названию и возвращает ее описание.\
+              *   **Если нужно изменить описание вакансии:** для этого, если не понятно какую вакансию редактировать, нужно спросить название вакансии, уточни, что добавить или убрать, собери всю необходимую для написания вакансии информацию и сгенерируй новый текст вакансии и вызвать функцию 'change_vacancy_description()' для сохранения изменений.\
+              *   **Если ты получаешь всю информацию о вакансии:** прописаны все пункты о вакансии в полном объеме, для этого проверяй всю переписку, спроси есть ли что еще добавить или поменять, а затем необходимо вызвать функцию 'creat_vacancy_in_db() для создания вакансии в базе данных.'\
               *   **Если ты получаешь недостаточно информации о вакансии:** до 3 пунктов о вакансии не придумывай, а начни задавать уточняющие вопросы по каждому пункту отдельно, ты будешь помнить каждый ответ от пользователя, так ка у тебя есть память. Пример уточняющего вапроса: Вы не написали желаемяй возраст кандидата. Уточните его, пожалуйста.'\
               *   **Если ты получил докунент с тестовым заданием:**  собери всю необходимую инфонмацию: название вакансии, название документа, id документа, время выполнения задания в днях, и вызови функцию 'save_test_task()'.\
               *   **Если ты получил ссылку:** спроси 'Эта ссылка на тестовое задание?' Если да, то собери всю необходимую инфонмацию: название вакансии, время выполнения задания в днях, и вызови функцию 'save_test_task()'.\
@@ -443,9 +501,9 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
               *   **Для публикации вакансии:** нужно обязательно спросить надо ли публиковать вакансии на hh.ru, собрать следующую информацию: в каком городе размещать. Уточняешь всю информацию, задавая вопросы, и вызываешь функцию 'post_vacancy()' для публикации вакансии на hh.ru.\
               *   **Если нужен список созданных вакансий из базы данных:**  вызвать функцию: 'get_vacancies_from_db()' - для сбора сохраненных в базе вакансий.\
               *   **Если нужен список активных вакансий на hh.ru:**  вызвать функцию: 'get_vacancies_from_hh()' - для сбора  опубликованных на hh.ru вакансий.\
-              *   **Если нужно показать описание конкретной вакансии из базы:**  вызвать функцию: 'get_vacancy_from_db_by_title()' - находит вакансию в базе по названию и возвращает ее описание.\
               *   **Если нужно опубликовать одну из уже имеющихся вакансий из базы данных:** для этого нужно спросить название вакансии и вызвать функцию: 'post_vacancy_from_db()' - Запускает процесс публикации вакансии, сохраненной в базе, на hh.ru.\
-              *   **Применение функций:**  Для выполнения поставленных задачь обязательно применяй следующие функции: 'get_vacancies_from_hh()' - для сбора  опубликованных на hh.ru вакансий, 'get_vacancy_from_db_by_title()' - находит вакансию в базе по названию и возвращает ее описание, 'get_vacancies_from_db()' - для сбора сохраненных в базе вакансий, 'post_vacancy_from_db()' - Запускает процесс публикации вакансии, сохраненной в базе, на hh.ru, 'save_vacancy()' - для сохранения вакансии в базе данных, 'save_test_task()' - Сохраняет в базу данных тестовое задание в виде id документа, названия документа, названия вакансии и времени выполнения задания, 'look_for_candidate_by_db()'- ищет кандидатов в базе резюме по портрету(описанию), 'post_vacancy()' - для публикации вакансии на hh.ru, 'del_vacancy()' - для удаления вакансии из базы.\
+              *   **Если нужно найти кандидатов из внутренней базы резюме hh.ru:** для этого, если не известно названия вакансии, нужно уточнить название вакансии, если название ваакансии известно, уточнять не надо(по названию вакансии ты получишь всю необходимую информацию), и затем вызвать функцию search_in_hh() для поска кандидата в hh.ru.\
+              *   **Применение функций:**  Для выполнения поставленных задачь обязательно применяй следующие функции: 'get_vacancies_from_hh()' - для сбора  опубликованных на hh.ru вакансий, 'get_vacancy_from_db_by_title()' - находит вакансию в базе по названию и возвращает ее описание, 'get_vacancies_from_db()' - для сбора сохраненных в базе вакансий, 'post_vacancy_from_db()' - Запускает процесс публикации вакансии, сохраненной в базе, на hh.ru, 'creat_vacancy_in_db()' - для создания вакансии в базе данных, 'save_test_task()' - Сохраняет в базу данных тестовое задание в виде id документа, названия документа, названия вакансии и времени выполнения задания, 'look_for_candidate_by_db()'- ищет кандидатов в базе резюме по портрету(описанию), 'post_vacancy()' - для публикации вакансии на hh.ru, 'del_vacancy()' - для удаления вакансии из базы.\
               *   **Отправка  вакансии:**  Помоги  отправить вакансию  на  HeadHunter  или  Bitrix24.\
               *   **Создание  лидов  в  Bitrix24:**  Создавай  новые  лиды  в  Bitrix24  для  кандидатов,  которые  связались  с  ботом.\
               *   **Генерация  тестовых  заданий:**  Используй  OpenAI  для  генерации  тестовых  заданий  для  кандидатов.\
@@ -485,7 +543,7 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
         },
         {"type": "function",
          "function": {
-                "name": "save_vacancy",
+                "name": "creat_vacancy_in_db",
                 "description": "Отправляет информацию о вакансии в базу данных.",
                 "parameters": {
                     "type": "object",
@@ -524,6 +582,19 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
         },
         {"type": "function",
          "function": {
+                "name": "search_in_hh",
+                "description": "Запускает поиск кундидата по внутренней базе hh.ru.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title_vacancy": {"type": "string"},
+                    },
+                    "required": ["title_vacancy"],
+                },
+            },
+        },
+        {"type": "function",
+         "function": {
                 "name": "get_vacancies_from_db",
                 "description": "Для сбора сохраненных в базе вакансий.",
                 "parameters": {
@@ -552,6 +623,20 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                         "title_of_vacancy": {"type": "string"},
                     },
                     "required": ["title_of_vacancy"],
+                },
+            },
+        },
+        {"type": "function",
+         "function": {
+                "name": "change_vacancy_description",
+                "description": "Записывает изменения в описании вакансии.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title_of_vacancy": {"type": "string"},
+                        "description_of_vacancy": {"type": "string"},
+                    },
+                    "required": ["title_of_vacancy", "description_of_vacancy"],
                 },
             },
         },
@@ -635,6 +720,39 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
             print('arg for func look_for..', arguments)
             await message.answer('Начинаю подбор...')
             await look_for_candidate_by_db(message, state, arguments)
+        elif function_name == "search_in_hh":
+            print('arg for func look_for..', arguments)
+            title = arguments.get(list(arguments.keys())[0])
+            # await get_resumes(arguments.get('description_of_candidate'))
+            vacancy = await get_vacancy(title)
+            if not vacancy:
+                await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'Подскажи пользователю, что вакансии {vacancy} не сущечтвует. И для поиска сначала нужно ее создать.'}, state)
+                # history = await get_history_by_user_id(message.from_user.id, state)
+                resp = await process_ai(message, state, flag=True)
+
+            else:
+                await message.answer('Начинаю подбор...')
+                try:
+                    await get_resumes(title, vacancy.description)
+                except ValueError as e:
+                    await message.answer(str(e))
+                except OverflowError as e:
+                    await message.answer(str(e))
+                except Exception as e:
+                    await message.answer('Что-то пошло не так, повторите попытку.')
+
+        elif function_name == "change_vacancy_description":
+            print('arg for func change_vacancy_description..', arguments)
+            {'role': 'user', 'content': 'Мне не понравился результат. Уточни, что добавить или убрать, собери всю необходимую для написания вакансии информацию и сгенерируй новый текст вакансии.'}
+            # vacancy = await process_commitment(message, json.dumps(data))
+            title_of_vacancy = arguments.get('title_of_vacancy')
+            vacancy = arguments.get('description_of_vacancy')
+            await update_vacancy_description(title_of_vacancy, vacancy)
+            vacancy_txt = clean_vacancy_txt(vacancy)
+
+            await message.answer('Изменения в описании вакансии сохранены.')
+            await asyncio.sleep(2)
+            await message.answer(vacancy_txt)
         elif function_name == "del_vacancy":
             title = arguments.get('title_of_vacancy')
             print(f'del_vacancy \n\ntitle: {title}')
@@ -643,7 +761,7 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                 await message.answer('Не указано название вакансии. Повторите попытку еще раз.')
                 return
             await message.answer('Удаление вакансии пока невозможно.')
-            await del_vacancy(arguments.get('title_of_vacancy'))
+            # await del_vacancy(arguments.get('title_of_vacancy'))
 
         elif function_name == "get_vacancies_from_db":
             print('arg for func get_vacancies_from_db..')
@@ -675,24 +793,17 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                 # history = await get_history_by_user_id(message.from_user.id, state)
                 resp = await process_ai(message, state, flag=True)
         elif function_name == "get_vacancy_from_db_by_title":
-            print('arg for func get_vacancy_from_db_by_title..')
+            print(f'arg for func {arguments}')
             vacancy = await get_vacancy(arguments.get('title_of_vacancy'))
             if vacancy:
                 vacancy_html = vacancy.description
                 print(vacancy_html)
                 await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': vacancy_html}, state)
-                flag = True
-                vacancy_txt = ''
-                for i in vacancy_html:
-                    if i == '<':
-                        flag = False
-                        continue
-                    elif i == '>':
-                        flag = True
-                        continue
-                    if flag:
-                        vacancy_txt += i
-                await message.answer(vacancy_txt)
+                vacancy_txt = clean_vacancy_txt(vacancy_html)
+                await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'Ты получил текст вакансии - {vacancy_txt}. Пришли описание пользователю в этом же формате или используй для изменения.'}, state)
+                # history = await get_history_by_user_id(message.from_user.id, state)
+                resp = await process_ai(message, state, flag=True)
+                # await message.answer(vacancy_txt)
             else:
                 await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'Подскажи пользователю, что вакансия не найдена'}, state)
                 # history = await get_history_by_user_id(message.from_user.id, state)
@@ -713,38 +824,21 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                         'id': await process_get_professional_roles(message, title_of_vacancy, state)
                     }
                     print(f'\n\nrole: {role}\nsity_id: {sity_id}\ndescription: {description}\nemployment= {info_from_vacancy['employment']}\nsalary={info_from_vacancy['salary']}\nexperience={info_from_vacancy['experience']}\n')
-                    try:
-                        # post = ''
-                        post = await creat_vacancy(message, state, title_of_vacancy, description,
-                                                area=sity_id,
-                                                professional_roles=[role],
-                                                employment= info_from_vacancy['employment'] if 'employment' in info_from_vacancy else None,
-                                                salary=info_from_vacancy['salary'] if 'salary' in info_from_vacancy else None,
-                                                experience=info_from_vacancy['experience'] if 'experience' in info_from_vacancy else None)
-                        if post.status_code == 201:
-                            id_hh = post.json()['id']
-                            print(f"Вакансия успешно создана: {id_hh}")
-                            await update_id_hh_by_title(title_of_vacancy, id_hh)
-                            await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что вакансия {title_of_vacancy} создана.'}, state)
-                            # history = await get_history_by_user_id(message.from_user.id, state)
-                            resp = await process_ai(message, state, flag=True)
-                            # asyncio.create_task(collect_responses())
-                            # await collect_responses()
-                            return
-                        else:
-                            if ((json.loads(post.text)).get('errors')[0]).get('value') == 'duplicate':
-                                return
-                            print(f"Ошибка создания вакансии: {post.text}\n code: {post.status_code}")
-                            raise ValueError(f"Ошибка создания вакансии: {post.text} code: {post.status_code}")
-                    except ValueError as e:
-                        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что получили ответ от hh.ru: {e}'}, state)
-                        # history = await get_history_by_user_id(message.from_user.id, state)
-                        resp = await process_ai(message, state, flag=True)
-                    except Exception as e:
-                        print(f"Ошибка создания вакансии. In Exception")
-                        await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что получили ответ от hh.ru: {e}'}, state)
-                        # history = await get_history_by_user_id(message.from_user.id, state)
-                        resp = await process_ai(message, state, flag=True)
+                    global data_for_creation
+                    data_for_creation = (message, state, title_of_vacancy, description, sity_id, role, info_from_vacancy)
+                    await state.set_state(CreateVacancyInfoStates.create_vacancy)
+                    keyboard = ReplyKeyboardMarkup(
+                                keyboard=[
+                                    [
+                                        types.KeyboardButton(text="Да"),
+                                    ],
+                                    [
+                                        types.KeyboardButton(text="Нет"),
+                                    ],
+                                ],
+                                resize_keyboard=True
+                            )
+                    await message.answer("При публикации спишутся средства, продолжить?", reply_markup=keyboard)
                 else:
                     await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': 'уточни у пользователя город публикации вакансии, так как указанный не верен'}, state)
                     # history = await get_history_by_user_id(message.from_user.id, state)
@@ -753,7 +847,7 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                 await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'подскажи пользователю, что нужно уточнить город публикации'}, state)
                 # history = await get_history_by_user_id(message.from_user.id, state)
                 resp = await process_ai(message, state, flag=True)
-        elif function_name == "save_vacancy":
+        elif function_name == "creat_vacancy_in_db":
             print('!!!! сохраняет вакансию в бд')
             title_of_vacancy = arguments.get("title_of_vacancy", 'уточнить название вакансии')
             conditions = arguments.get("conditions", 'уточнить условия')
@@ -782,25 +876,17 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
             print('!!!!!\n!!!!!!\n!!!!!!\n\n', check_data)
             
             if check_data:
-                await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': json.dumps(data)}, state)
-                history = await get_history_by_user_id(message.from_user.id, state)
-                await process_commitment_global(message, history, state)
+                await record_history_by_user_id(message.from_user.id, {'role': 'user', 'content': f'Ты получил не все данные - {json.dumps(data)}, уточни все что необходимо и продолжи исходя из логики общения'}, state)
+                # history = await get_history_by_user_id(message.from_user.id, state)
+                # await process_commitment_global(message, history, state)
+                resp = await process_ai(message, state, flag=True)
             else:
                 await save_vacancy(data)
                 vacancy = await process_commitment(message, json.dumps(data))
                 await update_vacancy_description(title_of_vacancy, vacancy)
-                flag = True
-                vacancy_txt = ''
-                for i in vacancy:
-                    if i == '<':
-                        flag = False
-                        continue
-                    elif i == '>':
-                        flag = True
-                        continue
-                    if flag:
-                        vacancy_txt += i
+                vacancy_txt = clean_vacancy_txt(vacancy)
 
+                await message.answer('Вакансия сохранена.')
                 await message.answer(vacancy_txt)
                 # print(vacancy)
                 await record_history_by_user_id(message.from_user.id, {'role': 'assistant', 'content': vacancy}, state)
@@ -808,18 +894,18 @@ async def process_commitment_global(message: types.Message, history, state: FSMC
                 history = await get_history_by_user_id(message.from_user.id, state)
                 await process_commitment_global(message, history, state)
                 
-                keyboard = ReplyKeyboardMarkup(
-                    keyboard=[
-                        # [
-                        #     types.KeyboardButton(text="Разместить на hh.ru"),
-                        # ],
-                        [
-                            types.KeyboardButton(text="Переписать"),
-                        ],
-                    ],
-                    resize_keyboard=True
-                )
-                await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
+                # keyboard = ReplyKeyboardMarkup(
+                #     keyboard=[
+                #         # [
+                #         #     types.KeyboardButton(text="Разместить на hh.ru"),
+                #         # ],
+                #         [
+                #             types.KeyboardButton(text="Переписать"),
+                #         ],
+                #     ],
+                #     resize_keyboard=True
+                # )
+                # await message.answer("Если вас не устраивает текст, нажмите кнопку Переписать", reply_markup=keyboard)
     else:
         # if not message.document:
         result = response.choices[0].message.content

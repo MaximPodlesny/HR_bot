@@ -2,17 +2,21 @@
 import asyncio
 import requests
 import json
-from config import message_for_wa, API_HH
+from config import message_for_wa, API_HH, message_for_wa_by_hh
 
 
 # Замените на ваши данные
 api_hh = API_HH
 CHAT_ID = "YOUR_CHAT_ID"
 
-async def send_mes_whatsapp(contacts, title_of_vacancy):
+async def send_mes_whatsapp(contacts, title_of_vacancy, message_for_wa_by_hh=False):
     sess = requests.Session()
     sess.verify = False
     for contact in contacts:
+        if message_for_wa_by_hh:
+            message = f'{message_for_wa_by_hh.replace("{title_of_vacancy}", title_of_vacancy)}{contact[2]}'
+        else:
+            message = f'{message_for_wa.replace("{title_of_vacancy}", title_of_vacancy)}{contact[2]}'
         print(contact, type(contact))
         """Отправляет сообщение через Whapi.Cloud"""
         url = "https://gate.whapi.cloud/messages/text"
@@ -26,7 +30,7 @@ async def send_mes_whatsapp(contacts, title_of_vacancy):
             # "quoted": "string",
             # "ephemeral": 0,
             # "edit": "string",
-            "body": f'{message_for_wa.replace("{title_of_vacancy}", title_of_vacancy)}{contact[2]}',
+            "body": message,
             "typing_time": 0,
             "no_link_preview": True,
             # "mentions": [

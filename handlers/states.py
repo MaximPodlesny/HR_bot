@@ -14,3 +14,11 @@ class UserchatInfoStates(StatesGroup):
        chosen_vacancy = State()
        list_vacancies = State()
        waiting_for_questions = State()
+
+class CreateVacancyInfoStates(StatesGroup):
+       create_vacancy = State()
+       # description = State()
+       # sity_id = State()
+       # role = State()
+       # info_from_vacancy = State()
+       # (message, state, title_of_vacancy, description, sity_id, role, info_from_vacancy)

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from alembic import context
 from config import DATABASE_URL
 
@@ -27,6 +27,7 @@ class Candidates(Base):
     test_task = Column(String)
     title_of_vacancy = Column(String)
 
+    vacancy = relationship("Vacancies", back_populates="candidates") # Добавили relationship
 class Vacancies(Base):
     __tablename__ = "vacancies"
     id = Column(Integer, primary_key=True)
@@ -40,6 +41,8 @@ class Vacancies(Base):
     priority = Column(String)
     test_task = Column(String)
 
+    candidates = relationship("Candidates", back_populates="vacancy", cascade="all, delete-orphan") # Вот строка с каскадом
+    candidate_portrait = relationship("CandidatePortrait", back_populates="vacancy", cascade="all, delete-orphan", uselist = False) # Вот строка с каскадом
 class CandidatePortrait(Base):
     __tablename__ = "candidate_portrait"
     id = Column(Integer, primary_key=True)
@@ -49,6 +52,7 @@ class CandidatePortrait(Base):
     qualities = Column(String)
     skills = Column(String)
 
+    vacancy = relationship("Vacancies", back_populates="candidate_portrait") # Добавили relationship
 class AdminPenal(Base):
     __tablename__ = "admin_penal"
     id = Column(Integer, primary_key=True)
